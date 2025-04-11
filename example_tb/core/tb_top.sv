@@ -61,6 +61,9 @@ module tb_top #(
     if ($test$plusargs("vcd")) begin
       $dumpfile("riscy_tb.vcd");
       $dumpvars(0, tb_top);
+    end else if($test$plusargs("fsdb")) begin
+      $fsdbDumpfile("riscy_tb.fsdb");
+      $fsdbDumpvars(0, "+all", "+parameter", "+functions");
     end
   end
 
@@ -118,6 +121,7 @@ module tb_top #(
       end else begin
         cycle_cnt_q <= cycle_cnt_q + 1;
         if (cycle_cnt_q >= maxcycles) begin
+          $fsdbDumpoff();
           $fatal(2, "Simulation aborted due to maximum cycle limit");
         end
       end

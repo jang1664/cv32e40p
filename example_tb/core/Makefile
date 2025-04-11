@@ -44,10 +44,13 @@ VSIM_DEBUG_FLAGS	= -debugdb
 VSIM_GUI_FLAGS          = -gui -debugdb
 VSIM_SCRIPT             = vsim.tcl
 
+VCS = vcs
+
 # RTL source files
 RTLSRC_HOME             := ../..
 export DESIGN_RTL_DIR = $(RTLSRC_HOME)/rtl
 CV_CORE_MANIFEST    := $(RTLSRC_HOME)/cv32e40p_manifest.flist
+CV_CORE_FPU_MANIFEST    := $(RTLSRC_HOME)/cv32e40p_fpu_manifest.flist
 RTLSRC_TB_PKG		:= include/perturbation_pkg.sv
 RTLSRC_TB_TOP		:= tb_top.sv
 RTLSRC_TB		:= $(filter-out cv32e40p_fp_wrapper.sv,\
@@ -129,6 +132,29 @@ vsim-run: ALL_VSIM_FLAGS += -c
 vsim-run: vsim-all
 	$(VSIM) -work $(VWORK) $(ALL_VSIM_FLAGS) \
 	$(RTLSRC_VOPT_TB_TOP) -do 'source $(VSIM_SCRIPT); exit -f'
+
+vcs-compile:
+	${VCS} \
+	-V -kdb -sverilog -full64 \
+	-debug_access+all \
+	-l logs/compile.log.${DATE} \
+	-timescale=1ns/1ps \
+	+libext+.v+ \
+	-f $(CV_CORE_FPU_MANIFEST) \
+	$(RTLSRC_TB_PKG) \
+	$(RTLSRC_TB) \
+  -pvalue+tb_top.FPU=1 \
+	-pvalue+tb_top.ZFINX=1 
+
+vcs-run : vcs-compile
+	./simv -reportstats -l ./logs/sim.log.${DATE} \
+	  +firmware=./fpu_test/build/fpu_test.elf.hex +fsdb
+
+# ./simv -reportstats -l ./logs/sim.log.${DATE} \
+#   +verbose +firmware=./fpu_test/build/fpu_test.elf.hex +fsdb
+
+verdi :
+	verdi -ssf riscy_tb.fsdb -dbdir simv.daidir
 
 # run tb and drop into interactive shell
 .PHONY: vsim-run-sh

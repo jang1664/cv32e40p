@@ -14,3 +14,11 @@ csrc
 inter.vpd
 ucli.key
 vc_hdrs.h
+logs/
+reports/
+novas.*
+*.fsdb
+simv*
+sysBusyPLog/
+verdi*
+build/
