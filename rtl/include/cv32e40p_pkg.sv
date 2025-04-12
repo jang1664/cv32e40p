@@ -805,4 +805,12 @@ package cv32e40p_pkg;
   parameter C_FFLAG = 5;
   parameter C_RM = 3;
 
+  typedef enum logic [3:0] {
+    CMD_OPCODE_NOP = 4'h0,
+    CMD_OPCODE_MUL = 4'h1,
+    CMD_OPCODE_ADD = 4'h2,
+    CMD_OPCODE_DIV = 4'h3,
+    CMD_OPCODE_SUB = 4'h4
+  } cmd_opcode_e;
+
 endpackage

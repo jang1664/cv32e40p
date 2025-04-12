@@ -61,6 +61,7 @@ for FILE in $SRC_BASES; do
     echo "Compiling $FILE"
     docker exec "$CONTAINER_NAME" /bin/bash -c "cd $CONTAINER_OUTPUT_DIR && $CLANG_EXE $CLANG_FLAGS -c $CONTAINER_SOURCE_DIR/$FILE -o $CONTAINER_OUTPUT_DIR/$FILE.o"
   else
+    echo "Compiling $FILE"
     docker exec "$CONTAINER_NAME" /bin/bash -c "cd $CONTAINER_OUTPUT_DIR && $CLANG_EXE $CLANG_FLAGS -c $CONTAINER_SOURCE_DIR/$FILE -o $CONTAINER_OUTPUT_DIR/$FILE.o"
   fi
 done

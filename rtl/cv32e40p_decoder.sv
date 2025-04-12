@@ -160,17 +160,29 @@ module cv32e40p_decoder
   // HPM related control signals
   input  logic [31:0] mcounteren_i,
 
-  // fpint signals
+  // addr config
   output logic [1:0] addr_config_set_widx_o,
   output logic addr_config_reg_we_o,
+
+  // coord range
   output logic [1:0] cood_reg_widx_o,
   output logic cood_reg_we_o,
 
+  // sync
   output logic [4:0] sync_reg_idx_o,
   output logic sync_reg_reserve_o,
   output logic sync_reg_wait_o,
 
-  output logic vector_mask_we_o
+  // vector mask
+  output logic vector_mask_we_o,
+
+  // commands
+  output logic cmd_dec_o, 
+  output logic cmd_mr_o,
+  output logic cmd_mur_o,
+  output logic cmd_mat_o,
+  output cmd_opcode_e cmd_opcode_o,
+  output logic [2:0] addr_update_en_o
 );
 
   // write enable/request control
@@ -197,10 +209,15 @@ module cv32e40p_decoder
   // unittypes for latencies to help us decode for APU
   enum logic[1:0] {ADDMUL, DIVSQRT, NONCOMP, CONV} fp_op_group;
 
+  logic addr_config_reg_we;
+  logic cood_reg_we;
+
   logic sync_reg_reserve;
   logic sync_reg_wait;
 
   logic vector_mask_we;
+
+  logic cmd_dec;
 
 
   /////////////////////////////////////////////
@@ -308,16 +325,23 @@ module cv32e40p_decoder
     dret_dec_o                     = 1'b0;
 
     addr_config_set_widx_o = 2'b0;
-    addr_config_reg_we_o = 1'b0;
+    addr_config_reg_we = 1'b0;
 
     cood_reg_widx_o = 2'b0;
-    cood_reg_we_o = 1'b0;
+    cood_reg_we = 1'b0;
 
     sync_reg_idx_o = 5'b0;
     sync_reg_reserve = 1'b0;
     sync_reg_wait = 1'b0;
 
     vector_mask_we = 1'b0;
+
+    cmd_dec = 1'b0;
+    cmd_mr_o = 1'b0;
+    cmd_mur_o = 1'b0;
+    cmd_mat_o = 1'b0;
+    cmd_opcode_o = CMD_OPCODE_NOP;
+    addr_update_en_o = 3'b0;
 
     unique case (instr_rdata_i[6:0])
 
@@ -1660,7 +1684,7 @@ module cv32e40p_decoder
           alu_en = 1'b0;
           regc_mux_o = REGC_S4;
           addr_config_set_widx_o = instr_rdata_i[8:7];
-          addr_config_reg_we_o = 1'b1;
+          addr_config_reg_we = 1'b1;
           // illegal_insn_o = 1'b1;
         end
       end
@@ -2055,7 +2079,7 @@ module cv32e40p_decoder
           alu_en = 1'b0;
           regc_mux_o = REGC_S4;
           cood_reg_widx_o = instr_rdata_i[8:7];
-          cood_reg_we_o = 1'b1;
+          cood_reg_we = 1'b1;
           // illegal_insn_o = 1'b1;
         end
       end
@@ -2163,7 +2187,22 @@ module cv32e40p_decoder
             end
           endcase
         end else begin
-          illegal_insn_o = 1'b1;
+          cmd_mr_o = 1'b1;
+          alu_en = 1'b0;
+          cmd_dec = 1'b1;
+          unique case(instr_rdata_i[14:12])
+            3'b000: begin // M.VV.f32
+              addr_update_en_o = instr_rdata_i[11:9];
+              rega_used_o = 1'b1;
+              regb_used_o = 1'b1;
+              regc_used_o = 1'b1;
+              cmd_opcode_o = CMD_OPCODE_MUL;
+            end
+            default: begin
+              illegal_insn_o = 1'b1;
+            end
+          endcase
+          // illegal_insn_o = 1'b1;
         end
       end
 
@@ -3072,9 +3111,12 @@ module cv32e40p_decoder
   assign hwlp_we_o                   = (deassert_we_i) ? 3'b0          : hwlp_we;
   assign csr_op_o                    = (deassert_we_i) ? CSR_OP_READ   : csr_op;
   assign ctrl_transfer_insn_in_id_o  = (deassert_we_i) ? BRANCH_NONE   : ctrl_transfer_insn;
+  assign addr_config_reg_we_o        = (deassert_we_i) ? 1'b0          : addr_config_reg_we;
+  assign cood_reg_we_o               = (deassert_we_i) ? 1'b0          : cood_reg_we;
   assign sync_reg_reserve_o          = (deassert_we_i) ? 1'b0          : sync_reg_reserve;
   assign sync_reg_wait_o             = (deassert_we_i) ? 1'b0          : sync_reg_wait;
   assign vector_mask_we_o            = (deassert_we_i) ? 1'b0          : vector_mask_we;
+  assign cmd_dec_o                   = (deassert_we_i) ? 1'b0          : cmd_dec;
 
   assign ctrl_transfer_insn_in_dec_o  = ctrl_transfer_insn;
   assign regfile_alu_we_dec_o         = regfile_alu_we;

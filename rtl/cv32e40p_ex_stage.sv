@@ -161,7 +161,12 @@ module cv32e40p_ex_stage
 
     output logic ex_ready_o,  // EX stage ready for new data
     output logic ex_valid_o,  // EX stage gets new data
-    input  logic wb_ready_i  // WB stage ready for new data
+    input  logic wb_ready_i,  // WB stage ready for new data
+
+    // cmd dispatch
+    input logic cmd_i,
+    input logic cmd_queue_gnt_i,
+    output logic cmd_queue_req_o
 );
 
   logic [                31:0] alu_result;
@@ -192,6 +197,8 @@ module cv32e40p_ex_stage
   logic                        apu_rvalid_q;
   logic [                31:0] apu_result_q;
   logic [APU_NUSFLAGS_CPU-1:0] apu_flags_q;
+
+  logic cmd_handshake;
 
   // ALU write port mux
   always_comb begin
@@ -447,6 +454,14 @@ module cv32e40p_ex_stage
   assign apu_busy_o = apu_active;
 
   ///////////////////////////////////////
+  //                                   //
+  //          cmd dispatcher           //
+  //                                   //
+  ///////////////////////////////////////
+  assign cmd_queue_req_o = cmd_i & ~apu_active & ~apu_stall;
+  assign cmd_handshake = cmd_queue_req_o & cmd_queue_gnt_i;
+
+  ///////////////////////////////////////
   // EX/WB Pipeline Register           //
   ///////////////////////////////////////
   always_ff @(posedge clk, negedge rst_n) begin : EX_WB_Pipeline_Register
@@ -472,7 +487,7 @@ module cv32e40p_ex_stage
   // to finish branches without going to the WB stage, ex_valid does not
   // depend on ex_ready.
   assign ex_ready_o = (~apu_stall & alu_ready & mult_ready & lsu_ready_ex_i
-                       & wb_ready_i & ~wb_contention) | (branch_in_ex_i);
+                       & wb_ready_i & ~wb_contention & (~cmd_i | cmd_handshake)) | (branch_in_ex_i);
   assign ex_valid_o = (apu_valid | alu_en_i | mult_en_i | csr_access_i | lsu_en_i)
                        & (alu_ready & mult_ready & lsu_ready_ex_i & wb_ready_i);
 

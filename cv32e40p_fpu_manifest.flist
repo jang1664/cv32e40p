@@ -56,6 +56,7 @@ ${DESIGN_RTL_DIR}/cv32e40p_obi_interface.sv
 ${DESIGN_RTL_DIR}/cv32e40p_prefetch_controller.sv
 ${DESIGN_RTL_DIR}/cv32e40p_sleep_unit.sv
 ${DESIGN_RTL_DIR}/cv32e40p_config_register.sv
+${DESIGN_RTL_DIR}/cv32e40p_cmd_nodes.sv
 ${DESIGN_RTL_DIR}/cv32e40p_core.sv
 
 ${DESIGN_RTL_DIR}/vendor/pulp_platform_common_cells/src/cf_math_pkg.sv

@@ -385,12 +385,29 @@ module cv32e40p_core
   logic sync_taken;
 
   assign sync_reg_set = '0;
-  assign sync_taken = 1'b0;
+  // assign sync_taken = 1'b0;
 
   // vector mask
   logic [31:0] vector_mask;
   logic vector_mask_we;
   logic [31:0] vector_mask_reg;
+
+  // cmd
+  logic cmd_ex;
+  logic [2:0] cmd_addr_update_en_ex;
+  logic [31:0] cmd_base_addr_a_ex;
+  logic [31:0] cmd_base_addr_b_ex;
+  logic [31:0] cmd_base_addr_c_ex;
+  logic [2:0][2:0][15:0] addr_bnd_ex;
+  logic [2:0][2:0][15:0] addr_strd_ex;
+  logic [2:0][2:0][15:0] cood_base_ex;
+  logic [2:0][2:0][15:0] cood_incr_ex;
+  logic sync_reserved_ex;
+  logic [4:0] sync_reserved_idx_ex;
+  logic [31:0] vector_mask_reg_ex;
+  cmd_opcode_e cmd_opcode_ex;
+  logic cmd_queue_req;
+  logic cmd_queue_gnt;
 
   // Mux selector for vectored IRQ PC
   assign m_exc_vec_pc_mux_id = (mtvec_mode == 2'b0) ? 5'h0 : exc_cause;
@@ -783,9 +800,27 @@ module cv32e40p_core
       .sync_reg_idx_o(sync_reg_idx),
       .sync_reg_reserve_o(sync_reg_reserve),
       .sync_reg_wait_o(sync_reg_wait),
+      .sync_reserved_i(sync_reserved),
+      .sync_reserved_idx_i(sync_reserved_reg_idx),
+      .sync_taken_o(sync_taken),
 
       .vector_mask_o(vector_mask),
-      .vector_mask_we_o(vector_mask_we)
+      .vector_mask_we_o(vector_mask_we),
+      .vector_mask_reg_i(vector_mask_reg),
+
+      .cmd_ex_o(cmd_ex),
+      .cmd_addr_update_en_ex_o(cmd_addr_update_en_ex),
+      .cmd_base_addr_a_ex_o(cmd_base_addr_a_ex),
+      .cmd_base_addr_b_ex_o(cmd_base_addr_b_ex),
+      .cmd_base_addr_c_ex_o(cmd_base_addr_c_ex),
+      .addr_bnd_ex_o(addr_bnd_ex),
+      .addr_strd_ex_o(addr_strd_ex), 
+      .cood_base_ex_o(cood_base_ex),
+      .cood_incr_ex_o(cood_incr_ex), 
+      .sync_reserved_ex_o(sync_reserved_ex),
+      .sync_reserved_idx_ex_o(sync_reserved_idx_ex),
+      .vector_mask_reg_ex_o(vector_mask_reg_ex),
+      .cmd_opcode_ex_o(cmd_opcode_ex)
   );
 
   cv32e40p_config_register config_register_i(
@@ -962,9 +997,30 @@ module cv32e40p_core
 
       .ex_ready_o(ex_ready),
       .ex_valid_o(ex_valid),
-      .wb_ready_i(lsu_ready_wb)
+      .wb_ready_i(lsu_ready_wb),
+
+      // cmd dispatch
+      .cmd_i(cmd_ex),
+      .cmd_queue_gnt_i(cmd_queue_gnt),
+      .cmd_queue_req_o(cmd_queue_req)
   );
 
+  ////////////////////////////////////////////////////////////////////
+  //                                                                //
+  //                           CMD NODES                            //
+  //                                                                //
+  ////////////////////////////////////////////////////////////////////
+  cv32e40p_cmd_nodes cmd_nodes_i(
+    .clk_i(clk_i),
+    .rst_ni(rst_ni),
+
+    // protocol
+    .req_i(cmd_queue_req),
+    .gnt_o(cmd_queue_gnt),
+
+    // data
+    .cmd_opcode_i(cmd_opcode_ex)
+  );
 
   ////////////////////////////////////////////////////////////////////////////////////////
   //    _     ___    _    ____    ____ _____ ___  ____  _____   _   _ _   _ ___ _____   //

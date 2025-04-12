@@ -169,9 +169,9 @@ module tb_top #(
 
   initial begin
     repeat (6000/CLK_PERIOD) @(posedge clk);
-    #1; force wrapper_i.top_i.core_i.sync_reg_set[3] = 1;
+    #1; force wrapper_i.top_i.core_i.sync_reg_set[4] = 1;
     @(posedge clk);
-    #1; release wrapper_i.top_i.core_i.sync_reg_set[3];
+    #1; release wrapper_i.top_i.core_i.sync_reg_set[4];
     repeat (5) @(posedge clk);
     #1; force wrapper_i.top_i.core_i.sync_taken = 1;
     @(posedge clk);

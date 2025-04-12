@@ -253,24 +253,50 @@ module cv32e40p_id_stage
     input logic        perf_imiss_i,
     input logic [31:0] mcounteren_i,
 
-    // fpint signals
+    // addr config
     output logic [2:0][15:0] addr_bnd_o,
     output logic [2:0][15:0] addr_strd_o,
     output logic        addr_config_we_o,
     output logic [1:0]  addr_config_widx_o,
+    input  logic [2:0][2:0][15:0] addr_bnd_i,
+    input  logic [2:0][2:0][15:0] addr_strd_i, 
 
+    // coord range
     output logic [2:0][15:0] cood_base_o,
     output logic [2:0][15:0] cood_incr_o,
     output logic        cood_reg_we_o,
     output logic [1:0]  cood_reg_widx_o,
+    input  logic [2:0][2:0][15:0] cood_base_i,
+    input  logic [2:0][2:0][15:0] cood_incr_i, 
 
+    // sync
     input logic sync_reg_wait_complete_i, 
     output logic [4:0] sync_reg_idx_o,
     output logic sync_reg_reserve_o,
     output logic sync_reg_wait_o,
+    input logic sync_reserved_i,
+    input logic [4:0] sync_reserved_idx_i,
+    output logic sync_taken_o,
 
+    // vector mask
     output logic [31:0] vector_mask_o,
-    output logic vector_mask_we_o
+    output logic vector_mask_we_o,
+    input  logic [31:0] vector_mask_reg_i,
+
+    // cmd ID/EX pipe
+    output logic cmd_ex_o,
+    output logic [2:0] cmd_addr_update_en_ex_o,
+    output logic [31:0] cmd_base_addr_a_ex_o,
+    output logic [31:0] cmd_base_addr_b_ex_o,
+    output logic [31:0] cmd_base_addr_c_ex_o,
+    output logic [2:0][2:0][15:0] addr_bnd_ex_o,
+    output logic [2:0][2:0][15:0] addr_strd_ex_o, 
+    output logic [2:0][2:0][15:0] cood_base_ex_o,
+    output logic [2:0][2:0][15:0] cood_incr_ex_o, 
+    output logic sync_reserved_ex_o,
+    output logic [4:0] sync_reserved_idx_ex_o,
+    output logic [31:0] vector_mask_reg_ex_o,
+    output cmd_opcode_e cmd_opcode_ex_o
 );
 
   // Source/Destination register instruction index
@@ -502,15 +528,24 @@ module cv32e40p_id_stage
   logic minstret;
   logic perf_pipeline_stall;
 
-  // fpint
+  // sync
   logic sync_reg_reserve;
   logic sync_reg_wait;
   logic sync_stall;
+
+  // command ctrl
+  logic cmd_dec; 
+  logic [2:0] addr_update_en;
+  logic cmd_mr;
+  logic cmd_mur;
+  logic cmd_mat;
+  cmd_opcode_e cmd_opcode;
 
   // assign sync_reg_reserve_o = sync_reg_reserve & ~branch_taken_ex;
   // assign sync_reg_wait_o = sync_reg_wait & ~branch_taken_ex;
   assign sync_reg_reserve_o = sync_reg_reserve;
   assign sync_reg_wait_o = sync_reg_wait;
+  assign sync_taken_o = cmd_dec & ~data_misaligned_i & id_valid_o & ex_ready_i;
 
   assign instr = instr_rdata_i;
 
@@ -1137,7 +1172,15 @@ module cv32e40p_id_stage
       .sync_reg_idx_o(sync_reg_idx_o),
       .sync_reg_reserve_o(sync_reg_reserve),
       .sync_reg_wait_o(sync_reg_wait),
-      .vector_mask_we_o(vector_mask_we_o)
+      .vector_mask_we_o(vector_mask_we_o),
+
+      // cmd
+      .cmd_dec_o(cmd_dec), 
+      .cmd_mr_o(cmd_mr),
+      .cmd_mur_o(cmd_mur),
+      .cmd_mat_o(cmd_mat),
+      .cmd_opcode_o(cmd_opcode),
+      .addr_update_en_o(addr_update_en)
   );
 
   ////////////////////////////////////////////////////////////////////
@@ -1532,6 +1575,20 @@ module cv32e40p_id_stage
 
       branch_in_ex_o         <= 1'b0;
 
+      cmd_ex_o               <= 1'b0;
+      cmd_addr_update_en_ex_o   <= 3'b0;
+      cmd_base_addr_a_ex_o      <= 32'b0;
+      cmd_base_addr_b_ex_o      <= 32'b0;
+      cmd_base_addr_c_ex_o      <= 32'b0;
+      addr_bnd_ex_o          <= '0;
+      addr_strd_ex_o         <= '0; 
+      cood_base_ex_o         <= '0;
+      cood_incr_ex_o         <= '0; 
+      sync_reserved_ex_o     <= '0;
+      sync_reserved_idx_ex_o <= '0;
+      vector_mask_reg_ex_o   <= '0;
+      cmd_opcode_ex_o        <= '0;
+
     end else if (data_misaligned_i) begin
       // misaligned data access case
       if (ex_ready_i) begin  // misaligned access case, only unstall alu operands
@@ -1639,6 +1696,40 @@ module cv32e40p_id_stage
         end
 
         branch_in_ex_o <= ctrl_transfer_insn_in_id == BRANCH_COND;
+
+        // cmd pipe
+        cmd_ex_o <= cmd_dec;
+        if(cmd_dec) begin
+          cmd_opcode_ex_o <= cmd_opcode;
+          sync_reserved_ex_o <= sync_reserved_i;
+          sync_reserved_idx_ex_o <= sync_reserved_idx_i;
+          vector_mask_reg_ex_o <= vector_mask_reg_i;
+          if(cmd_mr) begin
+            cmd_addr_update_en_ex_o <= addr_update_en;
+            cmd_base_addr_a_ex_o <= operand_a_fw_id;
+            cmd_base_addr_b_ex_o <= operand_b_fw_id;
+            cmd_base_addr_c_ex_o <= operand_c_fw_id;
+            addr_bnd_ex_o <= addr_bnd_i;
+            addr_strd_ex_o <= addr_strd_i;
+            cood_base_ex_o <= cood_base_i;
+            cood_incr_ex_o <= cood_incr_i;
+          end else if(cmd_mur) begin
+            cmd_addr_update_en_ex_o[0] <= addr_update_en[0];
+            cmd_addr_update_en_ex_o[2] <= addr_update_en[2];
+            cmd_base_addr_a_ex_o <= operand_a_fw_id;
+            cmd_base_addr_c_ex_o <= operand_c_fw_id;
+            addr_bnd_ex_o[0] <= addr_bnd_i[0];
+            addr_bnd_ex_o[2] <= addr_bnd_i[2];
+            addr_strd_ex_o[0] <= addr_strd_i[0];
+            addr_strd_ex_o[2] <= addr_strd_i[2];
+            cood_base_ex_o[0] <= cood_base_i[0];
+            cood_base_ex_o[2] <= cood_base_i[2];
+            cood_incr_ex_o[0] <= cood_incr_i[0];
+            cood_incr_ex_o[2] <= cood_incr_i[2];
+          end else if(cmd_mat) begin
+            
+          end
+        end
       end else if (ex_ready_i) begin
         // EX stage is ready but we don't have a new instruction for it,
         // so we set all write enables to 0, but unstall the pipe
@@ -1664,6 +1755,8 @@ module cv32e40p_id_stage
         mult_en_ex_o         <= 1'b0;
 
         alu_en_ex_o          <= 1'b1;
+
+        cmd_ex_o             <= 1'b0;
 
       end else if (csr_access_ex_o) begin
         //In the EX stage there was a CSR access, to avoid multiple
