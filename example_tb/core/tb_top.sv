@@ -12,6 +12,7 @@
 // Top level wrapper for a RI5CY testbench
 // Contributor: Robert Balas <balasr@student.ethz.ch>
 //              Jeremy Bennett <jeremy.bennett@embecosm.com>
+`timescale 1ns/1ps
 
 module tb_top #(
     parameter INSTR_RDATA_WIDTH = 32,
@@ -165,6 +166,17 @@ module tb_top #(
       .exit_valid_o  (exit_valid),
       .exit_value_o  (exit_value)
   );
+
+  initial begin
+    repeat (6000/CLK_PERIOD) @(posedge clk);
+    #1; force wrapper_i.top_i.core_i.sync_reg_set[3] = 1;
+    @(posedge clk);
+    #1; release wrapper_i.top_i.core_i.sync_reg_set[3];
+    repeat (5) @(posedge clk);
+    #1; force wrapper_i.top_i.core_i.sync_taken = 1;
+    @(posedge clk);
+    #1; release wrapper_i.top_i.core_i.sync_taken;
+  end
 
 `ifndef VERILATOR
   initial begin

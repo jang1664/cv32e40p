@@ -60,6 +60,15 @@ package cv32e40p_pkg;
   parameter OPCODE_CUSTOM_2 = 7'h5b;
   parameter OPCODE_CUSTOM_3 = 7'h7b;
 
+  // xfpint ext opcodes
+  parameter OPCODE_RESERVED_1 = 7'h6b;
+  parameter OPCODE_RESERVED_2 = 7'h57;
+  parameter OPCODE_RESERVED_3 = 7'h77;
+  parameter OPCODE_48         = 7'h1f;
+  parameter OPCODE_64         = 7'h3f;
+  parameter OPCODE_48_2       = 7'h5f;
+  parameter OPCODE_80         = 7'h7f;
+
   parameter REGC_S1 = 2'b10;
   parameter REGC_S4 = 2'b00;
   parameter REGC_RD = 2'b01;

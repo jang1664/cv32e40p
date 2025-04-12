@@ -251,7 +251,26 @@ module cv32e40p_id_stage
     output logic mhpmevent_pipe_stall_o,
 
     input logic        perf_imiss_i,
-    input logic [31:0] mcounteren_i
+    input logic [31:0] mcounteren_i,
+
+    // fpint signals
+    output logic [2:0][15:0] addr_bnd_o,
+    output logic [2:0][15:0] addr_strd_o,
+    output logic        addr_config_we_o,
+    output logic [1:0]  addr_config_widx_o,
+
+    output logic [2:0][15:0] cood_base_o,
+    output logic [2:0][15:0] cood_incr_o,
+    output logic        cood_reg_we_o,
+    output logic [1:0]  cood_reg_widx_o,
+
+    input logic sync_reg_wait_complete_i, 
+    output logic [4:0] sync_reg_idx_o,
+    output logic sync_reg_reserve_o,
+    output logic sync_reg_wait_o,
+
+    output logic [31:0] vector_mask_o,
+    output logic vector_mask_we_o
 );
 
   // Source/Destination register instruction index
@@ -482,6 +501,16 @@ module cv32e40p_id_stage
   logic id_valid_q;
   logic minstret;
   logic perf_pipeline_stall;
+
+  // fpint
+  logic sync_reg_reserve;
+  logic sync_reg_wait;
+  logic sync_stall;
+
+  // assign sync_reg_reserve_o = sync_reg_reserve & ~branch_taken_ex;
+  // assign sync_reg_wait_o = sync_reg_wait & ~branch_taken_ex;
+  assign sync_reg_reserve_o = sync_reg_reserve;
+  assign sync_reg_wait_o = sync_reg_wait;
 
   assign instr = instr_rdata_i;
 
@@ -1098,8 +1127,17 @@ module cv32e40p_id_stage
       .ctrl_transfer_target_mux_sel_o(ctrl_transfer_target_mux_sel),
 
       // HPM related control signals
-      .mcounteren_i(mcounteren_i)
+      .mcounteren_i(mcounteren_i),
 
+      // fpint signals
+      .addr_config_set_widx_o(addr_config_widx_o),
+      .addr_config_reg_we_o(addr_config_we_o),
+      .cood_reg_widx_o(cood_reg_widx_o),
+      .cood_reg_we_o(cood_reg_we_o),
+      .sync_reg_idx_o(sync_reg_idx_o),
+      .sync_reg_reserve_o(sync_reg_reserve),
+      .sync_reg_wait_o(sync_reg_wait),
+      .vector_mask_we_o(vector_mask_we_o)
   );
 
   ////////////////////////////////////////////////////////////////////
@@ -1263,6 +1301,10 @@ module cv32e40p_id_stage
       .operand_b_fw_mux_sel_o(operand_b_fw_mux_sel),
       .operand_c_fw_mux_sel_o(operand_c_fw_mux_sel),
 
+      // sync signals
+      .sync_reg_wait_complete_i(sync_reg_wait_complete_i),
+      .sync_reg_wait_i(sync_reg_wait_o),
+
       // Stall signals
       .halt_if_o(halt_if),
       .halt_id_o(halt_id),
@@ -1270,6 +1312,7 @@ module cv32e40p_id_stage
       .misaligned_stall_o(misaligned_stall),
       .jr_stall_o        (jr_stall),
       .load_stall_o      (load_stall),
+      .sync_stall_o      (sync_stall),
 
       .id_ready_i(id_ready_o),
       .id_valid_i(id_valid_o),
@@ -1676,10 +1719,41 @@ module cv32e40p_id_stage
   end
 
   // stall control
-  assign id_ready_o = ((~misaligned_stall) & (~jr_stall) & (~load_stall) & (~apu_stall) & (~csr_apu_stall) & ex_ready_i);
+  assign id_ready_o = ((~misaligned_stall) & 
+                       (~jr_stall) & 
+                       (~load_stall) & 
+                       (~apu_stall) & 
+                       (~csr_apu_stall) & 
+                       (~sync_stall) & 
+                       ex_ready_i);
   assign id_valid_o = (~halt_id) & id_ready_o;
   assign halt_if_o = halt_if;
 
+
+  // ===========================================================================
+  // 
+  // FPINT
+  // 
+  // ===========================================================================
+  // dim 1
+  assign addr_bnd_o[0] = alu_operand_a[15:0];
+  assign addr_strd_o[0] = alu_operand_a[31:16];
+  assign cood_base_o[0] = alu_operand_a[15:0];
+  assign cood_incr_o[0] = alu_operand_a[31:16];
+
+  // dim 2
+  assign addr_bnd_o[1] = operand_b[15:0];
+  assign addr_strd_o[1] = operand_b[31:16];
+  assign cood_base_o[1] = operand_b[15:0];
+  assign cood_incr_o[1] = operand_b[31:16];
+
+  // dim 3
+  assign addr_bnd_o[2] = operand_c[15:0];
+  assign addr_strd_o[2] = operand_c[31:16];
+  assign cood_base_o[2] = operand_c[15:0];
+  assign cood_incr_o[2] = operand_c[31:16];
+
+  assign vector_mask_o = alu_operand_a;
 
   //----------------------------------------------------------------------------
   // Assertions

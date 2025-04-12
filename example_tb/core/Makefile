@@ -45,6 +45,7 @@ VSIM_GUI_FLAGS          = -gui -debugdb
 VSIM_SCRIPT             = vsim.tcl
 
 VCS = vcs
+TNAME := fpint_test
 
 # RTL source files
 RTLSRC_HOME             := ../..
@@ -133,6 +134,9 @@ vsim-run: vsim-all
 	$(VSIM) -work $(VWORK) $(ALL_VSIM_FLAGS) \
 	$(RTLSRC_VOPT_TB_TOP) -do 'source $(VSIM_SCRIPT); exit -f'
 
+clang-compile:
+	../scripts/compile.sh $(TNAME)
+
 vcs-compile:
 	${VCS} \
 	-V -kdb -sverilog -full64 \
@@ -148,7 +152,7 @@ vcs-compile:
 
 vcs-run : vcs-compile
 	./simv -reportstats -l ./logs/sim.log.${DATE} \
-	  +firmware=./fpu_test/build/fpu_test.elf.hex +fsdb
+	  +firmware=./$(TNAME)/build/$(TNAME).elf.hex +fsdb +verbose +maxcycles=10000
 
 # ./simv -reportstats -l ./logs/sim.log.${DATE} \
 #   +verbose +firmware=./fpu_test/build/fpu_test.elf.hex +fsdb

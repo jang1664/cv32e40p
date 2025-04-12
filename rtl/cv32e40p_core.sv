@@ -357,6 +357,41 @@ module cv32e40p_core
   logic [             31:0]       instr_addr_pmp;
   logic                           instr_err_pmp;
 
+  // addr config
+  logic [2:0][15:0] addr_bnd;
+  logic [2:0][15:0] addr_strd;
+  logic        addr_config_we;
+  logic [1:0]  addr_config_widx;
+  logic [2:0][2:0][15:0] addr_bnd_all_op;
+  logic [2:0][2:0][15:0] addr_strd_all_op;
+
+  // coordinate range
+  logic [2:0][15:0] cood_base;
+  logic [2:0][15:0] cood_incr;
+  logic        cood_reg_we;
+  logic [1:0]  cood_reg_widx;
+  logic [2:0][2:0][15:0] cood_base_all_opnd;
+  logic [2:0][2:0][15:0] cood_incr_all_opnd;
+
+  // sync
+  logic sync_reg_wait_complete;
+  logic [4:0] sync_reg_idx;
+  logic sync_reg_reserve;
+  logic sync_reg_wait;
+  logic [31:0] sync_reg;
+  logic [4:0] sync_reserved_reg_idx;
+  logic sync_reserved;
+  logic [31:0] sync_reg_set;
+  logic sync_taken;
+
+  assign sync_reg_set = '0;
+  assign sync_taken = 1'b0;
+
+  // vector mask
+  logic [31:0] vector_mask;
+  logic vector_mask_we;
+  logic [31:0] vector_mask_reg;
+
   // Mux selector for vectored IRQ PC
   assign m_exc_vec_pc_mux_id = (mtvec_mode == 2'b0) ? 5'h0 : exc_cause;
   assign u_exc_vec_pc_mux_id = (utvec_mode == 2'b0) ? 5'h0 : exc_cause;
@@ -731,9 +766,66 @@ module cv32e40p_core
       .mhpmevent_pipe_stall_o  (mhpmevent_pipe_stall),
 
       .perf_imiss_i(perf_imiss),
-      .mcounteren_i(mcounteren)
+      .mcounteren_i(mcounteren),
+      
+      // fpint signals
+      .addr_bnd_o(addr_bnd),
+      .addr_strd_o(addr_strd),
+      .addr_config_we_o(addr_config_we),
+      .addr_config_widx_o(addr_config_widx),
+
+      .cood_base_o(cood_base),
+      .cood_incr_o(cood_incr),
+      .cood_reg_we_o(cood_reg_we),
+      .cood_reg_widx_o(cood_reg_widx),
+
+      .sync_reg_wait_complete_i(sync_reg_wait_complete), 
+      .sync_reg_idx_o(sync_reg_idx),
+      .sync_reg_reserve_o(sync_reg_reserve),
+      .sync_reg_wait_o(sync_reg_wait),
+
+      .vector_mask_o(vector_mask),
+      .vector_mask_we_o(vector_mask_we)
   );
 
+  cv32e40p_config_register config_register_i(
+    .clk_i(clk_i),
+    .rst_ni(rst_ni),
+
+    // addr config
+    .addr_bnd_i(addr_bnd),
+    .addr_strd_i(addr_strd),
+    .addr_config_we_i(addr_config_we),
+    .addr_config_widx_i(addr_config_widx),
+    .addr_bnd_o(addr_bnd_all_op),
+    .addr_strd_o(addr_strd_all_op),
+
+    // coordinate range register
+    .cood_base_i(cood_base), // dim x width
+    .cood_incr_i(cood_incr), // dim x width
+    .cood_reg_we_i(cood_reg_we),
+    .cood_reg_widx_i(cood_reg_widx),
+    .cood_base_o(cood_base_all_opnd),
+    .cood_incr_o(cood_incr_all_opnd),
+
+    // sync
+    .sync_reg_idx_i(sync_reg_idx),
+    .sync_reserve_i(sync_reg_reserve),
+    .sync_reg_wait_i(sync_reg_wait),
+    .sync_reg_wait_complete_o(sync_reg_wait_complete),
+
+    .sync_reg_set_i(sync_reg_set),
+
+    .sync_taken_i(sync_taken),
+    .sync_reserved_reg_idx_o(sync_reserved_reg_idx),
+    .sync_reserved_o(sync_reserved),
+
+    .sync_reg_o(sync_reg),
+
+    .vector_mask_i(vector_mask),
+    .vector_mask_we_i(vector_mask_we),
+    .vector_mask_o(vector_mask_reg)
+  );
 
   /////////////////////////////////////////////////////
   //   _______  __  ____ _____  _    ____ _____      //

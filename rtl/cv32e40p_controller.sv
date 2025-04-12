@@ -184,6 +184,10 @@ module cv32e40p_controller import cv32e40p_pkg::*;
   input logic         reg_d_alu_is_reg_b_i,
   input logic         reg_d_alu_is_reg_c_i,
 
+  // sync signals
+  input logic sync_reg_wait_complete_i,
+  input logic sync_reg_wait_i,
+
   // stall signals
   output logic        halt_if_o,
   output logic        halt_id_o,
@@ -191,6 +195,7 @@ module cv32e40p_controller import cv32e40p_pkg::*;
   output logic        misaligned_stall_o,
   output logic        jr_stall_o,
   output logic        load_stall_o,
+  output logic        sync_stall_o,
 
   input  logic        id_ready_i,                 // ID stage is ready
   input  logic        id_valid_i,                 // ID stage is valid
@@ -1339,6 +1344,7 @@ endgenerate
   begin
     load_stall_o   = 1'b0;
     deassert_we_o  = 1'b0;
+    sync_stall_o   = 1'b0;
 
     // deassert WE when the core is not decoding instructions
     if (~is_decoding_o)
@@ -1379,6 +1385,11 @@ endgenerate
     else
     begin
       jr_stall_o     = 1'b0;
+    end
+
+    // stall because of sync wait
+    if(sync_reg_wait_i & ~sync_reg_wait_complete_i) begin
+      sync_stall_o   = 1'b1;
     end
   end
 
