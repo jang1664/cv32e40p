@@ -384,7 +384,7 @@ module cv32e40p_core
   logic [31:0] sync_reg_set;
   logic sync_taken;
 
-  assign sync_reg_set = '0;
+  // assign sync_reg_set = '0;
   // assign sync_taken = 1'b0;
 
   // vector mask
@@ -785,17 +785,23 @@ module cv32e40p_core
       .perf_imiss_i(perf_imiss),
       .mcounteren_i(mcounteren),
       
-      // fpint signals
+      // addr config
       .addr_bnd_o(addr_bnd),
       .addr_strd_o(addr_strd),
       .addr_config_we_o(addr_config_we),
       .addr_config_widx_o(addr_config_widx),
+      .addr_bnd_i(addr_bnd_all_op),
+      .addr_strd_i(addr_strd_all_op), 
 
+      // coor range config
       .cood_base_o(cood_base),
       .cood_incr_o(cood_incr),
       .cood_reg_we_o(cood_reg_we),
       .cood_reg_widx_o(cood_reg_widx),
+      .cood_base_i(cood_base_all_opnd),
+      .cood_incr_i(cood_incr_all_opnd), 
 
+      // sync
       .sync_reg_wait_complete_i(sync_reg_wait_complete), 
       .sync_reg_idx_o(sync_reg_idx),
       .sync_reg_reserve_o(sync_reg_reserve),
@@ -804,10 +810,12 @@ module cv32e40p_core
       .sync_reserved_idx_i(sync_reserved_reg_idx),
       .sync_taken_o(sync_taken),
 
+      // vector mask
       .vector_mask_o(vector_mask),
       .vector_mask_we_o(vector_mask_we),
       .vector_mask_reg_i(vector_mask_reg),
 
+      // cmd
       .cmd_ex_o(cmd_ex),
       .cmd_addr_update_en_ex_o(cmd_addr_update_en_ex),
       .cmd_base_addr_a_ex_o(cmd_base_addr_a_ex),
@@ -1019,7 +1027,21 @@ module cv32e40p_core
     .gnt_o(cmd_queue_gnt),
 
     // data
-    .cmd_opcode_i(cmd_opcode_ex)
+    .cmd_opcode_i(cmd_opcode_ex),
+    .cmd_addr_update_en_ex_i(cmd_addr_update_en_ex),
+    .cmd_base_addr_a_ex_i(cmd_base_addr_a_ex),
+    .cmd_base_addr_b_ex_i(cmd_base_addr_b_ex),
+    .cmd_base_addr_c_ex_i(cmd_base_addr_c_ex),
+    .addr_bnd_ex_i(addr_bnd_ex),
+    .addr_strd_ex_i(addr_strd_ex), 
+    .cood_base_ex_i(cood_base_ex),
+    .cood_incr_ex_i(cood_incr_ex), 
+    .vector_mask_reg_ex_i(vector_mask_reg_ex),
+
+    // sync
+    .sync_reserved_ex_i(sync_reserved_ex),
+    .sync_reserved_idx_ex_i(sync_reserved_idx_ex),
+    .sync_set_req_o(sync_reg_set)
   );
 
   ////////////////////////////////////////////////////////////////////////////////////////

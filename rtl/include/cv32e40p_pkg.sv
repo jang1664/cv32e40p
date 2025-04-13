@@ -806,11 +806,18 @@ package cv32e40p_pkg;
   parameter C_RM = 3;
 
   typedef enum logic [3:0] {
-    CMD_OPCODE_NOP = 4'h0,
-    CMD_OPCODE_MUL = 4'h1,
-    CMD_OPCODE_ADD = 4'h2,
-    CMD_OPCODE_DIV = 4'h3,
-    CMD_OPCODE_SUB = 4'h4
+    CMD_OPCODE_NOP            = 4'd0,
+    CMD_OPCODE_MUL_VV_F32     = 4'd1,
+    CMD_OPCODE_MUL_VS_F32     = 4'd4,
+    CMD_OPCODE_RELU_V_F32     = 4'd5,
+    CMD_OPCODE_SETUP_LOAD_W   = 4'd6,
+    CMD_OPCODE_LOAD_W_MM      = 4'd7,
+    CMD_OPCODE_LOAD_Z_MM      = 4'd8,
+    CMD_OPCODE_GEMM           = 4'd9,
+    CMD_OPCODE_DMA_SETUP_DRAM = 4'd10,
+    CMD_OPCODE_DMA_SETUP_SRAM = 4'd11,
+    CMD_OPCODE_DMA_LOAD       = 4'd12,
+    CMD_OPCODE_DMA_STORE      = 4'd13
   } cmd_opcode_e;
 
 endpackage

@@ -2196,7 +2196,7 @@ module cv32e40p_decoder
               rega_used_o = 1'b1;
               regb_used_o = 1'b1;
               regc_used_o = 1'b1;
-              cmd_opcode_o = CMD_OPCODE_MUL;
+              cmd_opcode_o = CMD_OPCODE_MUL_VV_F32;
             end
             default: begin
               illegal_insn_o = 1'b1;

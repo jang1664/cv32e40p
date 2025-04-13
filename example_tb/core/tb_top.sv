@@ -167,16 +167,16 @@ module tb_top #(
       .exit_value_o  (exit_value)
   );
 
-  initial begin
-    repeat (6000/CLK_PERIOD) @(posedge clk);
-    #1; force wrapper_i.top_i.core_i.sync_reg_set[4] = 1;
-    @(posedge clk);
-    #1; release wrapper_i.top_i.core_i.sync_reg_set[4];
-    repeat (5) @(posedge clk);
-    #1; force wrapper_i.top_i.core_i.sync_taken = 1;
-    @(posedge clk);
-    #1; release wrapper_i.top_i.core_i.sync_taken;
-  end
+  // initial begin
+  //   repeat (6000/CLK_PERIOD) @(posedge clk);
+  //   #1; force wrapper_i.top_i.core_i.sync_reg_set[4] = 1;
+  //   @(posedge clk);
+  //   #1; release wrapper_i.top_i.core_i.sync_reg_set[4];
+  //   repeat (5) @(posedge clk);
+  //   #1; force wrapper_i.top_i.core_i.sync_taken = 1;
+  //   @(posedge clk);
+  //   #1; release wrapper_i.top_i.core_i.sync_taken;
+  // end
 
 `ifndef VERILATOR
   initial begin
