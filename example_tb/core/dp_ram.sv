@@ -57,7 +57,7 @@ module dp_ram #(
             else
       begin
         if ($test$plusargs("verbose"))
-          $display("read  addr=0x%08x: data=0x%08x", addr_b_int, {
+          $display("[%0t] read  addr=0x%08x: data=0x%08x", $time, addr_b_int, {
                    mem[addr_b_int+3], mem[addr_b_int+2], mem[addr_b_int+1], mem[addr_b_int+0]});
 
         rdata_b_o[7:0]   <= mem[addr_b_int];

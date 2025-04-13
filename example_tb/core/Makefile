@@ -51,9 +51,14 @@ TNAME := fpint_test
 RTLSRC_HOME             := ../..
 export DESIGN_RTL_DIR = $(RTLSRC_HOME)/rtl
 export MODEL_RTL_DIR  = $(PROJ_HOME)/microarch-verification/svlog
+export FI_INCLUDE_DIR = $(PROJ_HOME)/hardware/include
+export FI_RTL_DIR     = $(PROJ_HOME)/hardware/src
+
 CV_CORE_MANIFEST    := $(RTLSRC_HOME)/cv32e40p_manifest.flist
 CV_CORE_FPU_MANIFEST    := $(RTLSRC_HOME)/cv32e40p_fpu_manifest.flist
 MODEL_MANIFEST  := $(MODEL_RTL_DIR)/filelist
+FI_MANIFEST     := $(FI_RTL_DIR)/../filelist
+
 RTLSRC_TB_PKG		:= include/perturbation_pkg.sv
 RTLSRC_TB_TOP		:= tb_top.sv
 RTLSRC_TB		:= $(filter-out cv32e40p_fp_wrapper.sv,\
@@ -146,6 +151,7 @@ vcs-compile:
 	-l logs/compile.log.${DATE} \
 	-timescale=1ns/1ps \
 	+libext+.v+ \
+	-f $(FI_MANIFEST) \
 	-f $(MODEL_MANIFEST) \
 	-f $(CV_CORE_FPU_MANIFEST) \
 	$(RTLSRC_TB_PKG) \
@@ -156,7 +162,7 @@ vcs-compile:
 
 vcs-run : vcs-compile
 	./simv -reportstats -l ./logs/sim.log.${DATE} \
-	  +firmware=./$(TNAME)/build/$(TNAME).elf.hex +fsdb +maxcycles=10000
+	  +firmware=./$(TNAME)/build/$(TNAME).elf.hex +fsdb +maxcycles=10000 +verbose
 
 # ./simv -reportstats -l ./logs/sim.log.${DATE} \
 #   +verbose +firmware=./fpu_test/build/fpu_test.elf.hex +fsdb

@@ -181,6 +181,7 @@ module cv32e40p_decoder
   output logic cmd_mr_o,
   output logic cmd_mur_o,
   output logic cmd_mat_o,
+  output logic cmd_dma_o,
   output cmd_opcode_e cmd_opcode_o,
   output logic [2:0] addr_update_en_o
 );
@@ -340,8 +341,11 @@ module cv32e40p_decoder
     cmd_mr_o = 1'b0;
     cmd_mur_o = 1'b0;
     cmd_mat_o = 1'b0;
+    cmd_dma_o = 1'b0;
     cmd_opcode_o = CMD_OPCODE_NOP;
     addr_update_en_o = 3'b0;
+
+
 
     unique case (instr_rdata_i[6:0])
 
@@ -1676,7 +1680,7 @@ module cv32e40p_decoder
           end else begin                       // cv.bneimm
             alu_operator_o      = ALU_NE;
           end
-        end else begin
+        end else begin : FPINT_CUSTOM_0
           // set_addr_config
           rega_used_o = 1'b1;
           regb_used_o = 1'b1;
@@ -2186,7 +2190,7 @@ module cv32e40p_decoder
               end
             end
           endcase
-        end else begin
+        end else begin : FPINT_CUSTOM_1
           cmd_mr_o = 1'b1;
           alu_en = 1'b0;
           cmd_dec = 1'b1;
@@ -2748,7 +2752,7 @@ module cv32e40p_decoder
 
             default: illegal_insn_o = 1'b1;
           endcase
-        end else begin
+        end else begin : FPINT_CUSTOM_2
           illegal_insn_o = 1'b1;
         end
       end
@@ -3082,6 +3086,33 @@ module cv32e40p_decoder
           end
 
           default: illegal_insn_o = 1'b1;
+        endcase
+      end
+
+      OPCODE_64: begin // DMA
+        cmd_dec = 1'b1;
+        cmd_dma_o = 1'b1;
+        rega_used_o = 1'b1;
+        regb_used_o = 1'b1;
+        regc_used_o = 1'b1;
+        regc_mux_o = REGC_S4;
+        alu_en = 1'b0;
+        case(instr_rdata_i[14:12])
+          3'b000: begin
+            cmd_opcode_o = CMD_OPCODE_DMA_SETUP_DRAM;
+          end
+          3'b001: begin
+            cmd_opcode_o = CMD_OPCODE_DMA_SETUP_SRAM;
+          end
+          3'b010: begin
+            cmd_opcode_o = CMD_OPCODE_DMA_LOAD;
+          end
+          3'b011: begin
+            cmd_opcode_o = CMD_OPCODE_DMA_STORE;
+          end
+          default: begin
+            illegal_insn_o = 1'b1;
+          end
         endcase
       end
 

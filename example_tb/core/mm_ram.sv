@@ -448,7 +448,7 @@ module mm_ram #(
   // show writes if requested
   always_ff @(posedge clk_i, negedge rst_ni) begin : verbose_writes
     if ($test$plusargs("verbose") && data_req_i && data_we_i)
-      $display("write addr=0x%08x: data=0x%08x", data_addr_i, data_wdata_i);
+      $display("[%0t] write addr=0x%08x: data=0x%08x", $time, data_addr_i, data_wdata_i);
   end
 
   // the amo shim has a different encoding of atomics

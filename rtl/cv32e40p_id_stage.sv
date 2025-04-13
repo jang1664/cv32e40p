@@ -296,7 +296,15 @@ module cv32e40p_id_stage
     output logic sync_reserved_ex_o,
     output logic [4:0] sync_reserved_idx_ex_o,
     output logic [31:0] vector_mask_reg_ex_o,
-    output cmd_opcode_e cmd_opcode_ex_o
+    output cmd_opcode_e cmd_opcode_ex_o,
+
+    // -- dma
+    output logic [15:0] segment_size_ex_o,
+    output logic [15:0] pad_size_ex_o,
+    output logic [2:0][15:0] dma_addr_strd_ex_o,
+    output logic [2:0][15:0] dma_addr_bnd_ex_o,
+    output logic [31:0] dma_sram_base_addr_ex_o,
+    output logic [31:0] dma_dram_base_addr_ex_o
 );
 
   // Source/Destination register instruction index
@@ -539,6 +547,7 @@ module cv32e40p_id_stage
   logic cmd_mr;
   logic cmd_mur;
   logic cmd_mat;
+  logic cmd_dma;
   cmd_opcode_e cmd_opcode;
 
   // assign sync_reg_reserve_o = sync_reg_reserve & ~branch_taken_ex;
@@ -1179,6 +1188,7 @@ module cv32e40p_id_stage
       .cmd_mr_o(cmd_mr),
       .cmd_mur_o(cmd_mur),
       .cmd_mat_o(cmd_mat),
+      .cmd_dma_o(cmd_dma),
       .cmd_opcode_o(cmd_opcode),
       .addr_update_en_o(addr_update_en)
   );
@@ -1589,6 +1599,13 @@ module cv32e40p_id_stage
       vector_mask_reg_ex_o   <= '0;
       cmd_opcode_ex_o        <= '0;
 
+      segment_size_ex_o    <= '0;
+      pad_size_ex_o        <= '0;
+      dma_addr_strd_ex_o   <= '0;
+      dma_addr_bnd_ex_o    <= '0;
+      dma_sram_base_addr_ex_o <= '0;
+      dma_dram_base_addr_ex_o <= '0;
+
     end else if (data_misaligned_i) begin
       // misaligned data access case
       if (ex_ready_i) begin  // misaligned access case, only unstall alu operands
@@ -1728,6 +1745,13 @@ module cv32e40p_id_stage
             cood_incr_ex_o[2] <= cood_incr_i[2];
           end else if(cmd_mat) begin
             
+          end else if(cmd_dma) begin
+            pad_size_ex_o     <= operand_c_fw_id[15:0];
+            segment_size_ex_o <= operand_c_fw_id[31:16];
+            dma_addr_strd_ex_o <= {operand_c_fw_id[31:16], operand_b_fw_id[31:16], operand_a_fw_id[31:16]};
+            dma_addr_bnd_ex_o <= {operand_c_fw_id[15:0], operand_b_fw_id[15:0], operand_a_fw_id[15:0]};
+            dma_sram_base_addr_ex_o <= operand_a_fw_id;
+            dma_dram_base_addr_ex_o <= operand_b_fw_id;
           end
         end
       end else if (ex_ready_i) begin

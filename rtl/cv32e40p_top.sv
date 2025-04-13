@@ -23,6 +23,8 @@
 //                                                                         //
 /////////////////////////////////////////////////////////////////////////////
 
+`include "tcdm.svh"
+
 module cv32e40p_top #(
     parameter COREV_PULP = 0, // PULP ISA Extension (incl. custom CSRs and hardware loop, excl. cv.elw)
     parameter COREV_CLUSTER = 0,  // PULP Cluster interface (incl. cv.elw)
@@ -96,6 +98,17 @@ module cv32e40p_top #(
 
   logic apu_clk_en, apu_clk;
 
+  // LSU interface
+  `TCDM_EXPLODE_DECLARE(data, 32, 32);
+  TCDM_BUS #(.ADDR_WIDTH(32), .DATA_WIDTH(32)) lsu_tcdm_master (.clk(clk_i));
+
+  // dma
+  TCDM_BUS #(.ADDR_WIDTH(32), .DATA_WIDTH(32)) dma_tcdm_master (.clk(clk_i));
+
+  // bridge
+  TCDM_BUS #(.ADDR_WIDTH(32), .DATA_WIDTH(32)) tcdm_mux_in [2](.clk(clk_i));
+  TCDM_BUS #(.ADDR_WIDTH(32), .DATA_WIDTH(32)) tcdm_mux_out [1](.clk(clk_i));
+
   // Instantiate the Core
   cv32e40p_core #(
       .COREV_PULP      (COREV_PULP),
@@ -124,14 +137,14 @@ module cv32e40p_top #(
       .instr_addr_o  (instr_addr_o),
       .instr_rdata_i (instr_rdata_i),
 
-      .data_req_o   (data_req_o),
-      .data_gnt_i   (data_gnt_i),
-      .data_rvalid_i(data_rvalid_i),
-      .data_we_o    (data_we_o),
-      .data_be_o    (data_be_o),
-      .data_addr_o  (data_addr_o),
-      .data_wdata_o (data_wdata_o),
-      .data_rdata_i (data_rdata_i),
+      .data_req_o   (data_req),
+      .data_gnt_i   (data_gnt),
+      .data_rvalid_i(data_rvalid),
+      .data_we_o    (data_we),
+      .data_be_o    (data_be),
+      .data_addr_o  (data_addr),
+      .data_wdata_o (data_wdata),
+      .data_rdata_i (data_rdata),
 
       .apu_busy_o    (apu_busy),
       .apu_req_o     (apu_req),
@@ -153,7 +166,9 @@ module cv32e40p_top #(
       .debug_halted_o   (debug_halted_o),
 
       .fetch_enable_i(fetch_enable_i),
-      .core_sleep_o  (core_sleep_o)
+      .core_sleep_o  (core_sleep_o),
+
+      .dma_tcdm_master(dma_tcdm_master)
   );
 
   generate
@@ -193,5 +208,31 @@ module cv32e40p_top #(
       assign apu_rflags = '0;
     end
   endgenerate
+
+  // ---------------------------------------------------------
+  //
+  // BRIDGE
+  //
+  // ---------------------------------------------------------
+  `TCDM_SLAVE_EXPLODE(lsu_tcdm_master, data, );
+  `TCDM_ASSIGN_INTF(tcdm_mux_in[0], lsu_tcdm_master);
+  `TCDM_ASSIGN_INTF(tcdm_mux_in[1], dma_tcdm_master);
+  tcdm_mux # (
+    .NB_IN_CHAN(2),
+    .NB_OUT_CHAN(1)
+  ) tcdm_mux_i (
+    .clk_i(clk_i),
+    .rst_ni(rst_ni),
+    .clear_i('0),
+
+    .in(tcdm_mux_in),
+    .out(tcdm_mux_out)
+  );
+
+  `TCDM_MASTER_EXPLODE_IO(tcdm_mux_out[0], data, _o, _i);
+
+  // cache
+
+  // shared mem
 
 endmodule

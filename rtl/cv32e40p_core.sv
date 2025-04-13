@@ -97,7 +97,10 @@ module cv32e40p_core
 
     // CPU Control Signals
     input  logic fetch_enable_i,
-    output logic core_sleep_o
+    output logic core_sleep_o,
+
+    // dma
+    TCDM_BUS.master dma_tcdm_master
 );
 
   import cv32e40p_pkg::*;
@@ -408,6 +411,14 @@ module cv32e40p_core
   cmd_opcode_e cmd_opcode_ex;
   logic cmd_queue_req;
   logic cmd_queue_gnt;
+
+  // -- dma
+  logic [15:0] segment_size_ex;
+  logic [15:0] pad_size_ex;
+  logic [2:0][15:0] dma_addr_strd_ex;
+  logic [2:0][15:0] dma_addr_bnd_ex;
+  logic [31:0] dma_sram_base_addr_ex;
+  logic [31:0] dma_dram_base_addr_ex;
 
   // Mux selector for vectored IRQ PC
   assign m_exc_vec_pc_mux_id = (mtvec_mode == 2'b0) ? 5'h0 : exc_cause;
@@ -828,7 +839,15 @@ module cv32e40p_core
       .sync_reserved_ex_o(sync_reserved_ex),
       .sync_reserved_idx_ex_o(sync_reserved_idx_ex),
       .vector_mask_reg_ex_o(vector_mask_reg_ex),
-      .cmd_opcode_ex_o(cmd_opcode_ex)
+      .cmd_opcode_ex_o(cmd_opcode_ex),
+
+      // -- dma
+      .segment_size_ex_o(segment_size_ex),
+      .pad_size_ex_o(pad_size_ex),
+      .dma_addr_strd_ex_o(dma_addr_strd_ex),
+      .dma_addr_bnd_ex_o(dma_addr_bnd_ex),
+      .dma_sram_base_addr_ex_o(dma_sram_base_addr_ex),
+      .dma_dram_base_addr_ex_o(dma_dram_base_addr_ex)
   );
 
   cv32e40p_config_register config_register_i(
@@ -1041,7 +1060,18 @@ module cv32e40p_core
     // sync
     .sync_reserved_ex_i(sync_reserved_ex),
     .sync_reserved_idx_ex_i(sync_reserved_idx_ex),
-    .sync_set_req_o(sync_reg_set)
+    .sync_set_req_o(sync_reg_set),
+
+    // dma
+    .segment_size_ex_i(segment_size_ex),
+    .pad_size_ex_i(pad_size_ex),
+    .dma_addr_strd_ex_i(dma_addr_strd_ex),
+    .dma_addr_bnd_ex_i(dma_addr_bnd_ex),
+    .dma_sram_base_addr_ex_i(dma_sram_base_addr_ex),
+    .dma_dram_base_addr_ex_i(dma_dram_base_addr_ex),
+
+    // dram interface
+    .tcdm_master(dma_tcdm_master)
   );
 
   ////////////////////////////////////////////////////////////////////////////////////////

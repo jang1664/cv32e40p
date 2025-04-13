@@ -45,6 +45,36 @@ main:
   wait_sync	0x3
   wait_sync	0x4
 
+  ; lui  t1, 0x40
+  lui  t1, 0x00
+  addi t1, t1, 0x4
+
+  ; lui  t2, 0x40
+  lui  t2, 0x00
+  addi t2, t2, 0x4
+
+  ; lui  t3, 0x40
+  lui  t3, 0x00
+  addi t3, t3, 0x4
+
+  dma_setup_dram  t1, t2, t3
+  dma_setup_sram  t1, t2, t3
+
+  lui t3, 0x100
+  addi t3, t3, 0
+
+  mv t1, sp
+  mv t2, sp
+  set_sync	0x3
+  dma_load_start  t1, t2, t3
+
+  ; sw t1, 0x0(sp)
+  ; sw t2, 0x4(sp)
+  ; sw t3, 0x8(sp)
+  ; lw  t1, 0x0(sp)
+  ; lw  t2, 0x4(sp)
+  ; lw  t2, 0x8(sp)
+
   addi	sp, sp, 0x30
   addi	x0, x0, 0
   addi	x0, x0, 0
