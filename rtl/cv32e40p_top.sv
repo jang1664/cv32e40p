@@ -103,7 +103,8 @@ module cv32e40p_top #(
   TCDM_BUS #(.ADDR_WIDTH(32), .DATA_WIDTH(32)) lsu_tcdm_master (.clk(clk_i));
 
   // dma
-  TCDM_BUS #(.ADDR_WIDTH(32), .DATA_WIDTH(32)) dma_tcdm_master (.clk(clk_i));
+  TCDM_BUS #(.ADDR_WIDTH(32), .DATA_WIDTH(32)) dma_dram_master (.clk(clk_i));
+  TCDM_BUS #(.ADDR_WIDTH(32), .DATA_WIDTH(32)) dma_smem_master (.clk(clk_i));
 
   // bridge
   TCDM_BUS #(.ADDR_WIDTH(32), .DATA_WIDTH(32)) tcdm_mux_in [2](.clk(clk_i));
@@ -168,7 +169,8 @@ module cv32e40p_top #(
       .fetch_enable_i(fetch_enable_i),
       .core_sleep_o  (core_sleep_o),
 
-      .dma_tcdm_master(dma_tcdm_master)
+      .dma_dram_master(dma_dram_master),
+      .dma_smem_master(dma_smem_master)
   );
 
   generate
@@ -216,7 +218,7 @@ module cv32e40p_top #(
   // ---------------------------------------------------------
   `TCDM_SLAVE_EXPLODE(lsu_tcdm_master, data, );
   `TCDM_ASSIGN_INTF(tcdm_mux_in[0], lsu_tcdm_master);
-  `TCDM_ASSIGN_INTF(tcdm_mux_in[1], dma_tcdm_master);
+  `TCDM_ASSIGN_INTF(tcdm_mux_in[1], dma_dram_master);
   tcdm_mux # (
     .NB_IN_CHAN(2),
     .NB_OUT_CHAN(1)
@@ -234,5 +236,11 @@ module cv32e40p_top #(
   // cache
 
   // shared mem
+  SharedMem smem = new();
+  initial begin
+    core_i.cmd_nodes_i.nodes.smem = smem;
+    core_i.cmd_nodes_i.dram_dma_node.smem = smem;
+    core_i.cmd_nodes_i.mxu_dma_node.smem = smem;
+  end
 
 endmodule

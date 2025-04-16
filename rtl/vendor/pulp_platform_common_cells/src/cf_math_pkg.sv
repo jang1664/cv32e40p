@@ -58,4 +58,43 @@ package cf_math_pkg;
         return (num_idx > 32'd1) ? unsigned'($clog2(num_idx)) : 32'd1;
     endfunction
 
+    function shortreal btof32(bit[31:0] bits);
+      return $bitstoshortreal(bits);
+    endfunction
+
+    function bit[31:0] f32tob(shortreal f);
+      return $shortrealtobits(f);
+    endfunction
+
+    function shortreal btof16(bit[15:0] bits);
+      bit [31:0] bits_fp32;
+      bit sign;
+      bit [4:0] exponent;
+      bit [10:0] mantissa;
+
+      bit [7:0] exp_fp32;
+      bit [22:0] mant_fp32;
+
+      exp_fp32 = exponent - 31 + 127;
+      mant_fp32 = {mantissa, 11'b0};
+      bits_fp32 = {sign, exp_fp32, mant_fp32};
+      return $bitstoshortreal(bits_fp32);
+    endfunction
+
+    function bit[15:0] f16tob(shortreal f);
+      bit [31:0] bits_fp32;
+      bit sign;
+      bit [7:0] exponent;
+      bit [22:0] mantissa;
+
+      bit [4:0] exp_fp16;
+      bit [10:0] mant_fp16;
+
+      bits_fp32 = $shortrealtobits(f);
+      {sign, exponent, mantissa} = bits_fp32;
+      exp_fp16 = exponent - 127 + 31;
+      mant_fp16 = {mantissa[22:12]};
+      return {sign, exp_fp16, mant_fp16};
+    endfunction
+
 endpackage

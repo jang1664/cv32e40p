@@ -100,7 +100,8 @@ module cv32e40p_core
     output logic core_sleep_o,
 
     // dma
-    TCDM_BUS.master dma_tcdm_master
+    TCDM_BUS.master dma_dram_master,
+    TCDM_BUS.master dma_smem_master
 );
 
   import cv32e40p_pkg::*;
@@ -411,6 +412,7 @@ module cv32e40p_core
   cmd_opcode_e cmd_opcode_ex;
   logic cmd_queue_req;
   logic cmd_queue_gnt;
+  node_type_e node_type_ex;
 
   // -- dma
   logic [15:0] segment_size_ex;
@@ -419,6 +421,12 @@ module cv32e40p_core
   logic [2:0][15:0] dma_addr_bnd_ex;
   logic [31:0] dma_sram_base_addr_ex;
   logic [31:0] dma_dram_base_addr_ex;
+
+  // MM
+  logic [15:0] mxu_wl_sram_base_addr_ex;
+  logic [15:0] mxu_wl_sram_addr_strd_ex;
+  logic [15:0] mxu_wl_sram_addr_bnd_ex;
+  logic mxu_widx_ex;
 
   // Mux selector for vectored IRQ PC
   assign m_exc_vec_pc_mux_id = (mtvec_mode == 2'b0) ? 5'h0 : exc_cause;
@@ -840,6 +848,7 @@ module cv32e40p_core
       .sync_reserved_idx_ex_o(sync_reserved_idx_ex),
       .vector_mask_reg_ex_o(vector_mask_reg_ex),
       .cmd_opcode_ex_o(cmd_opcode_ex),
+      .node_type_ex_o(node_type_ex),
 
       // -- dma
       .segment_size_ex_o(segment_size_ex),
@@ -847,7 +856,13 @@ module cv32e40p_core
       .dma_addr_strd_ex_o(dma_addr_strd_ex),
       .dma_addr_bnd_ex_o(dma_addr_bnd_ex),
       .dma_sram_base_addr_ex_o(dma_sram_base_addr_ex),
-      .dma_dram_base_addr_ex_o(dma_dram_base_addr_ex)
+      .dma_dram_base_addr_ex_o(dma_dram_base_addr_ex),
+
+      // -- MM
+      .mxu_wl_sram_base_addr_ex_o(mxu_wl_sram_base_addr_ex),
+      .mxu_wl_sram_addr_strd_ex_o(mxu_wl_sram_addr_strd_ex),
+      .mxu_wl_sram_addr_bnd_ex_o(mxu_wl_sram_addr_bnd_ex),
+      .mxu_widx_ex_o(mxu_widx_ex)
   );
 
   cv32e40p_config_register config_register_i(
@@ -1047,6 +1062,7 @@ module cv32e40p_core
 
     // data
     .cmd_opcode_i(cmd_opcode_ex),
+    .node_type_i(node_type_ex),
     .cmd_addr_update_en_ex_i(cmd_addr_update_en_ex),
     .cmd_base_addr_a_ex_i(cmd_base_addr_a_ex),
     .cmd_base_addr_b_ex_i(cmd_base_addr_b_ex),
@@ -1065,13 +1081,22 @@ module cv32e40p_core
     // dma
     .segment_size_ex_i(segment_size_ex),
     .pad_size_ex_i(pad_size_ex),
-    .dma_addr_strd_ex_i(dma_addr_strd_ex),
-    .dma_addr_bnd_ex_i(dma_addr_bnd_ex),
     .dma_sram_base_addr_ex_i(dma_sram_base_addr_ex),
     .dma_dram_base_addr_ex_i(dma_dram_base_addr_ex),
+    .dma_sram_addr_strd_ex_i(dma_addr_strd_ex),
+    .dma_sram_addr_bnd_ex_i(dma_addr_bnd_ex),
+    .dma_dram_addr_strd_ex_i(dma_addr_strd_ex),
+    .dma_dram_addr_bnd_ex_i(dma_addr_bnd_ex),
+
+    // MM
+    .mxu_wl_sram_base_addr_ex_i(mxu_wl_sram_base_addr_ex),
+    .mxu_wl_sram_addr_strd_ex_i(mxu_wl_sram_addr_strd_ex),
+    .mxu_wl_sram_addr_bnd_ex_i(mxu_wl_sram_addr_bnd_ex),
+    .mxu_widx_ex_i(mxu_widx_ex),
 
     // dram interface
-    .tcdm_master(dma_tcdm_master)
+    .dma_dram_master(dma_dram_master),
+    .dma_smem_master(dma_smem_master)
   );
 
   ////////////////////////////////////////////////////////////////////////////////////////

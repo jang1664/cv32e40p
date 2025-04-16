@@ -297,6 +297,7 @@ module cv32e40p_id_stage
     output logic [4:0] sync_reserved_idx_ex_o,
     output logic [31:0] vector_mask_reg_ex_o,
     output cmd_opcode_e cmd_opcode_ex_o,
+    output node_type_e node_type_ex_o,
 
     // -- dma
     output logic [15:0] segment_size_ex_o,
@@ -304,7 +305,13 @@ module cv32e40p_id_stage
     output logic [2:0][15:0] dma_addr_strd_ex_o,
     output logic [2:0][15:0] dma_addr_bnd_ex_o,
     output logic [31:0] dma_sram_base_addr_ex_o,
-    output logic [31:0] dma_dram_base_addr_ex_o
+    output logic [31:0] dma_dram_base_addr_ex_o,
+
+    // -- MM
+    output logic [15:0] mxu_wl_sram_base_addr_ex_o,
+    output logic [15:0] mxu_wl_sram_addr_strd_ex_o,
+    output logic [15:0] mxu_wl_sram_addr_bnd_ex_o,
+    output logic mxu_widx_ex_o
 );
 
   // Source/Destination register instruction index
@@ -549,6 +556,10 @@ module cv32e40p_id_stage
   logic cmd_mat;
   logic cmd_dma;
   cmd_opcode_e cmd_opcode;
+  node_type_e cmd_node_type;
+
+  // MM
+  logic mxu_widx;
 
   // assign sync_reg_reserve_o = sync_reg_reserve & ~branch_taken_ex;
   // assign sync_reg_wait_o = sync_reg_wait & ~branch_taken_ex;
@@ -1190,7 +1201,9 @@ module cv32e40p_id_stage
       .cmd_mat_o(cmd_mat),
       .cmd_dma_o(cmd_dma),
       .cmd_opcode_o(cmd_opcode),
-      .addr_update_en_o(addr_update_en)
+      .cmd_node_type_o(cmd_node_type),
+      .addr_update_en_o(addr_update_en),
+      .mxu_widx_o(mxu_widx)
   );
 
   ////////////////////////////////////////////////////////////////////
@@ -1598,6 +1611,7 @@ module cv32e40p_id_stage
       sync_reserved_idx_ex_o <= '0;
       vector_mask_reg_ex_o   <= '0;
       cmd_opcode_ex_o        <= '0;
+      node_type_ex_o         <= '0;
 
       segment_size_ex_o    <= '0;
       pad_size_ex_o        <= '0;
@@ -1605,6 +1619,11 @@ module cv32e40p_id_stage
       dma_addr_bnd_ex_o    <= '0;
       dma_sram_base_addr_ex_o <= '0;
       dma_dram_base_addr_ex_o <= '0;
+
+      mxu_wl_sram_addr_bnd_ex_o <= '0;
+      mxu_wl_sram_addr_strd_ex_o <= '0;
+      mxu_wl_sram_base_addr_ex_o <= '0;
+      mxu_widx_ex_o <= '0;
 
     end else if (data_misaligned_i) begin
       // misaligned data access case
@@ -1718,6 +1737,7 @@ module cv32e40p_id_stage
         cmd_ex_o <= cmd_dec;
         if(cmd_dec) begin
           cmd_opcode_ex_o <= cmd_opcode;
+          node_type_ex_o <= cmd_node_type;
           sync_reserved_ex_o <= sync_reserved_i;
           sync_reserved_idx_ex_o <= sync_reserved_idx_i;
           vector_mask_reg_ex_o <= vector_mask_reg_i;
@@ -1744,7 +1764,11 @@ module cv32e40p_id_stage
             cood_incr_ex_o[0] <= cood_incr_i[0];
             cood_incr_ex_o[2] <= cood_incr_i[2];
           end else if(cmd_mat) begin
-            
+            mxu_wl_sram_base_addr_ex_o <= operand_a_fw_id;
+            mxu_wl_sram_addr_bnd_ex_o <= operand_a_fw_id;
+            mxu_wl_sram_addr_strd_ex_o <= operand_b_fw_id;
+            mxu_widx_ex_o <= mxu_widx;
+            segment_size_ex_o <= operand_b_fw_id[15:0];
           end else if(cmd_dma) begin
             pad_size_ex_o     <= operand_c_fw_id[15:0];
             segment_size_ex_o <= operand_c_fw_id[31:16];

@@ -183,7 +183,9 @@ module cv32e40p_decoder
   output logic cmd_mat_o,
   output logic cmd_dma_o,
   output cmd_opcode_e cmd_opcode_o,
-  output logic [2:0] addr_update_en_o
+  output node_type_e cmd_node_type_o,
+  output logic [2:0] addr_update_en_o,
+  output logic mxu_widx_o
 );
 
   // write enable/request control
@@ -342,10 +344,10 @@ module cv32e40p_decoder
     cmd_mur_o = 1'b0;
     cmd_mat_o = 1'b0;
     cmd_dma_o = 1'b0;
-    cmd_opcode_o = CMD_OPCODE_NOP;
+    cmd_opcode_o = CMD_OPCODE_INVALID;
+    cmd_node_type_o = NODE_INVALID;
     addr_update_en_o = 3'b0;
-
-
+    mxu_widx_o = 1'b0;
 
     unique case (instr_rdata_i[6:0])
 
@@ -2076,7 +2078,7 @@ module cv32e40p_decoder
             default: illegal_insn_o = 1'b1;
           endcase
 
-        end else begin
+        end else begin : FPINT_CUSTOM_1
           rega_used_o = 1'b1;
           regb_used_o = 1'b1;
           regc_used_o = 1'b1;
@@ -2190,23 +2192,36 @@ module cv32e40p_decoder
               end
             end
           endcase
-        end else begin : FPINT_CUSTOM_1
+        end else begin : FPINT_CUSTOM_2
           cmd_mr_o = 1'b1;
           alu_en = 1'b0;
           cmd_dec = 1'b1;
+          addr_update_en_o = instr_rdata_i[11:9];
+          rega_used_o = 1'b1;
+          regb_used_o = 1'b1;
+          regc_used_o = 1'b1;
+          regc_mux_o = REGC_S4;
           unique case(instr_rdata_i[14:12])
-            3'b000: begin // M.VV.f32
-              addr_update_en_o = instr_rdata_i[11:9];
-              rega_used_o = 1'b1;
-              regb_used_o = 1'b1;
-              regc_used_o = 1'b1;
+            3'b000: begin // MUL.M.VV.f32
               cmd_opcode_o = CMD_OPCODE_MUL_VV_F32;
+              cmd_node_type_o = NODE_MUL;
+            end
+            3'b001: begin // ADD.M.VV.F16
+              cmd_opcode_o = CMD_OPCODE_ADD_VV_F16;
+              cmd_node_type_o = NODE_ADD;
+            end
+            3'b010: begin // ADD.M.VV.F32
+              cmd_opcode_o = CMD_OPCODE_ADD_VV_F32;
+              cmd_node_type_o = NODE_ADD;
+            end
+            3'b011: begin // MUL.M.VS.F32
+              cmd_opcode_o = CMD_OPCODE_MUL_VS_F32;
+              cmd_node_type_o = NODE_MUL;
             end
             default: begin
               illegal_insn_o = 1'b1;
             end
           endcase
-          // illegal_insn_o = 1'b1;
         end
       end
 
@@ -2752,8 +2767,72 @@ module cv32e40p_decoder
 
             default: illegal_insn_o = 1'b1;
           endcase
-        end else begin : FPINT_CUSTOM_2
-          illegal_insn_o = 1'b1;
+        end else begin : FPINT_CUSTOM_3
+          alu_en = 1'b0;
+          cmd_dec = 1'b1;
+          cmd_node_type_o=NODE_GEMM;
+          case(instr_rdata_i[14:12])
+            3'b000: begin
+              rega_used_o = 1'b1;
+              regb_used_o = 1'b1;
+              cmd_opcode_o = CMD_OPCODE_SETUP_LOAD_W;
+            end
+            3'b001: begin
+              rega_used_o = 1'b1;
+              regb_used_o = 1'b1;
+              mxu_widx_o = instr_rdata_i[25];
+              cmd_opcode_o = CMD_OPCODE_LOAD_W_MM;
+            end
+            3'b010: begin
+              rega_used_o = 1'b1;
+              mxu_widx_o = instr_rdata_i[25];
+              cmd_opcode_o = CMD_OPCODE_LOAD_Z_MM;
+            end
+            3'b011: begin
+              rega_used_o = 1'b1;
+              mxu_widx_o = instr_rdata_i[25];
+              cmd_opcode_o = CMD_OPCODE_LOAD_S_MM;
+            end
+            3'b100: begin
+              addr_update_en_o[0] = instr_rdata_i[9];
+              addr_update_en_o[2] = instr_rdata_i[11];
+              rega_used_o = 1'b1;
+              regc_used_o = 1'b1;
+              regc_mux_o = REGC_S4;
+              mxu_widx_o = instr_rdata_i[25];
+              cmd_opcode_o = CMD_OPCODE_GEMM;
+            end
+            3'b101: begin
+              addr_update_en_o = instr_rdata_i[11:9];
+              rega_used_o = 1'b1;
+              regb_used_o = 1'b1;
+              regc_used_o = 1'b1;
+              regc_mux_o = REGC_S4;
+              mxu_widx_o = instr_rdata_i[25];
+              cmd_opcode_o = CMD_OPCODE_GEMM_ACC;
+            end
+            3'b110: begin
+              addr_update_en_o = instr_rdata_i[11:9];
+              rega_used_o = 1'b1;
+              regb_used_o = 1'b1;
+              regc_used_o = 1'b1;
+              regc_mux_o = REGC_S4;
+              mxu_widx_o = instr_rdata_i[25];
+              cmd_opcode_o = CMD_OPCODE_GEMM_ACC_SCALE;
+            end
+            3'b111: begin
+              addr_update_en_o[0] = instr_rdata_i[9];
+              addr_update_en_o[2] = instr_rdata_i[11];
+              rega_used_o = 1'b1;
+              regc_used_o = 1'b1;
+              regc_mux_o = REGC_S4;
+              mxu_widx_o = instr_rdata_i[25];
+              cmd_opcode_o = CMD_OPCODE_GEMM_SCALE;
+            end
+            default: begin
+              illegal_insn_o = 1'b1;
+            end
+          endcase
         end
       end
 
@@ -3071,21 +3150,44 @@ module cv32e40p_decoder
         end
       end
 
-      OPCODE_RESERVED_3: begin // sync
-        unique case (instr_rdata_i[14:12])
-          3'b000: begin // reserve
-            alu_en = 1'b0;
-            sync_reg_idx_o = instr_rdata_i[11:7];
-            sync_reg_reserve = 1'b1;
+      OPCODE_48: begin // MUR
+        case({instr_rdata_i[31:25], instr_rdata_i[14:12]})
+          {7'b0, 3'b000}: begin
+            cmd_opcode_o = CMD_OPCODE_EXP_V_F32;
+            
+          end
+          {7'b0, 3'b001}: begin
+            cmd_opcode_o = CMD_OPCODE_RELU_V_F32;
+            
+          end
+          {7'b0, 3'b010}: begin
+            cmd_opcode_o = CMD_OPCODE_F16_TO_F32;
+            
+          end
+          {7'b0, 3'b011}: begin
+            cmd_opcode_o = CMD_OPCODE_F32_TO_F16;
+            
+          end
+          {7'b0, 3'b100}: begin
+            cmd_opcode_o = CMD_OPCODE_REDUCE_SUM_F32;
+            
+          end
+          {7'b0, 3'b101}: begin
+            cmd_opcode_o = CMD_OPCODE_MV_F32;
+            
+          end
+          {7'b0, 3'b110}: begin
+            cmd_opcode_o = CMD_OPCODE_NEG_F32;
+            
+          end
+          {7'b0, 3'b111}: begin
+            cmd_opcode_o = CMD_OPCODE_ZERO_F32;
+            
           end
 
-          3'b001: begin // wait
-            alu_en = 1'b0;
-            sync_reg_idx_o = instr_rdata_i[11:7];
-            sync_reg_wait = 1'b1;
+          default: begin
+            illegal_insn_o = 1'b1;
           end
-
-          default: illegal_insn_o = 1'b1;
         endcase
       end
 
@@ -3097,6 +3199,7 @@ module cv32e40p_decoder
         regc_used_o = 1'b1;
         regc_mux_o = REGC_S4;
         alu_en = 1'b0;
+        cmd_node_type_o = NODE_DMA;
         case(instr_rdata_i[14:12])
           3'b000: begin
             cmd_opcode_o = CMD_OPCODE_DMA_SETUP_DRAM;
@@ -3116,9 +3219,49 @@ module cv32e40p_decoder
         endcase
       end
 
+      OPCODE_48_2: begin // CTRL
+        case(instr_rdata_i[14:12])
+          2'b00: begin // HALT
+            
+          end
+
+          2'b01: begin // IRQ
+            
+          end
+
+          default: begin
+            
+          end
+        endcase
+      end
+
       OPCODE_80: begin // vector mask
         alu_en = 1'b0;
         vector_mask_we = 1'b1;
+      end
+
+      OPCODE_RESERVED_1: begin // shared LD
+      end
+
+      OPCODE_RESERVED_2: begin // shared ST
+      end
+
+      OPCODE_RESERVED_3: begin // sync
+        unique case (instr_rdata_i[14:12])
+          3'b000: begin // reserve
+            alu_en = 1'b0;
+            sync_reg_idx_o = instr_rdata_i[11:7];
+            sync_reg_reserve = 1'b1;
+          end
+
+          3'b001: begin // wait
+            alu_en = 1'b0;
+            sync_reg_idx_o = instr_rdata_i[11:7];
+            sync_reg_wait = 1'b1;
+          end
+
+          default: illegal_insn_o = 1'b1;
+        endcase
       end
 
       default: illegal_insn_o = 1'b1;

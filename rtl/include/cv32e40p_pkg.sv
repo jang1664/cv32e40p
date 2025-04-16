@@ -805,19 +805,53 @@ package cv32e40p_pkg;
   parameter C_FFLAG = 5;
   parameter C_RM = 3;
 
-  typedef enum logic [3:0] {
-    CMD_OPCODE_NOP            = 4'd0,
-    CMD_OPCODE_MUL_VV_F32     = 4'd1,
-    CMD_OPCODE_MUL_VS_F32     = 4'd4,
-    CMD_OPCODE_RELU_V_F32     = 4'd5,
-    CMD_OPCODE_SETUP_LOAD_W   = 4'd6,
-    CMD_OPCODE_LOAD_W_MM      = 4'd7,
-    CMD_OPCODE_LOAD_Z_MM      = 4'd8,
-    CMD_OPCODE_GEMM           = 4'd9,
-    CMD_OPCODE_DMA_SETUP_DRAM = 4'd10,
-    CMD_OPCODE_DMA_SETUP_SRAM = 4'd11,
-    CMD_OPCODE_DMA_LOAD       = 4'd12,
-    CMD_OPCODE_DMA_STORE      = 4'd13
+  typedef enum logic [7:0] {
+    CMD_OPCODE_INVALID='0,
+    CMD_OPCODE_NOP,
+    CMD_OPCODE_MUL_VV_F32, 
+    CMD_OPCODE_MUL_VS_F32, 
+    CMD_OPCODE_ADD_VV_F16,
+    CMD_OPCODE_ADD_VV_F32,
+
+    CMD_OPCODE_SETUP_LOAD_W, 
+    CMD_OPCODE_LOAD_W_MM, 
+    CMD_OPCODE_LOAD_Z_MM, 
+    CMD_OPCODE_LOAD_S_MM, 
+    CMD_OPCODE_GEMM, 
+    CMD_OPCODE_GEMM_ACC, 
+    CMD_OPCODE_GEMM_ACC_SCALE, 
+    CMD_OPCODE_GEMM_SCALE, 
+
+    CMD_OPCODE_EXP_V_F32,
+    CMD_OPCODE_RELU_V_F32, 
+    CMD_OPCODE_F16_TO_F32,
+    CMD_OPCODE_F32_TO_F16,
+    CMD_OPCODE_REDUCE_SUM_F32,
+    CMD_OPCODE_MV_F32,
+    CMD_OPCODE_NEG_F32,
+    CMD_OPCODE_ZERO_F32,
+
+    CMD_OPCODE_DMA_SETUP_DRAM, 
+    CMD_OPCODE_DMA_SETUP_SRAM, 
+    CMD_OPCODE_DMA_LOAD, 
+    CMD_OPCODE_DMA_STORE,
+
+    CMD_OPCODE_FUSE_START,
+    CMD_OPCODE_FUSE_END
   } cmd_opcode_e;
+
+  typedef enum bit [7:0] {
+    NODE_INVALID='0,
+    NODE_MUL,
+    NODE_ADD,
+    NODE_GEMM,
+    NODE_EXP_F32,
+    NODE_FL_CONVERT,
+    NODE_REDUCE_SUM_F32,
+    NODE_RELU_F32,
+    NODE_BIN_F32,
+    NODE_DMA,
+    NODE_WEIGHT_LOADER
+  } node_type_e;
 
 endpackage
