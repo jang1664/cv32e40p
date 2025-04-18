@@ -98,9 +98,13 @@ module cv32e40p_top #(
 
   logic apu_clk_en, apu_clk;
 
+  // smem
+  logic smem_inst;
+
   // LSU interface
   `TCDM_EXPLODE_DECLARE(data, 32, 32);
   TCDM_BUS #(.ADDR_WIDTH(32), .DATA_WIDTH(32)) lsu_tcdm_master (.clk(clk_i));
+  TCDM_BUS #(.ADDR_WIDTH(32), .DATA_WIDTH(32)) lsu_smem_tcdm_master (.clk(clk_i));
 
   // dma
   TCDM_BUS #(.ADDR_WIDTH(32), .DATA_WIDTH(32)) dma_dram_master (.clk(clk_i));
@@ -146,6 +150,7 @@ module cv32e40p_top #(
       .data_addr_o  (data_addr),
       .data_wdata_o (data_wdata),
       .data_rdata_i (data_rdata),
+      .smem_o       (smem_inst),
 
       .apu_busy_o    (apu_busy),
       .apu_req_o     (apu_req),
@@ -217,7 +222,28 @@ module cv32e40p_top #(
   //
   // ---------------------------------------------------------
   `TCDM_SLAVE_EXPLODE(lsu_tcdm_master, data, );
-  `TCDM_ASSIGN_INTF(tcdm_mux_in[0], lsu_tcdm_master);
+  assign lsu_tcdm_master.rready = 1'b1;
+
+  // LSU muxing betwwen dram and smem
+  assign tcdm_mux_in[0].req = lsu_tcdm_master.req & ~smem_inst;
+  assign tcdm_mux_in[0].addr = lsu_tcdm_master.addr;
+  assign tcdm_mux_in[0].we = lsu_tcdm_master.we;
+  assign tcdm_mux_in[0].be = lsu_tcdm_master.be;
+  assign tcdm_mux_in[0].wdata = lsu_tcdm_master.wdata;
+  assign tcdm_mux_in[0].rready = lsu_tcdm_master.rready;
+
+  assign lsu_smem_tcdm_master.req = lsu_tcdm_master.req & smem_inst;
+  assign lsu_smem_tcdm_master.addr = lsu_tcdm_master.addr;
+  assign lsu_smem_tcdm_master.we = lsu_tcdm_master.we;
+  assign lsu_smem_tcdm_master.be = lsu_tcdm_master.be;
+  assign lsu_smem_tcdm_master.wdata = lsu_tcdm_master.wdata;
+  assign lsu_smem_tcdm_master.rready = lsu_tcdm_master.rready;
+
+  assign lsu_tcdm_master.gnt = ~smem_inst ? tcdm_mux_in[0].gnt    : lsu_smem_tcdm_master.gnt;
+  assign lsu_tcdm_master.rdata = ~smem_inst ? tcdm_mux_in[0].rdata  : lsu_smem_tcdm_master.rdata;
+  assign lsu_tcdm_master.rvalid = ~smem_inst ? tcdm_mux_in[0].rvalid : lsu_smem_tcdm_master.rvalid;
+
+  // `TCDM_ASSIGN_INTF(tcdm_mux_in[0], lsu_tcdm_master);
   `TCDM_ASSIGN_INTF(tcdm_mux_in[1], dma_dram_master);
   tcdm_mux # (
     .NB_IN_CHAN(2),
@@ -237,10 +263,15 @@ module cv32e40p_top #(
 
   // shared mem
   SharedMem smem = new();
+  clk_if clk_if();
+  assign clk_if.clk = clk_i;
   initial begin
     core_i.cmd_nodes_i.nodes.smem = smem;
     core_i.cmd_nodes_i.dram_dma_node.smem = smem;
     core_i.cmd_nodes_i.mxu_dma_node.smem = smem;
+    smem.tcdm_slv_vif = lsu_smem_tcdm_master;
+    smem.clk_vif = clk_if;
+    smem.run();
   end
 
 endmodule

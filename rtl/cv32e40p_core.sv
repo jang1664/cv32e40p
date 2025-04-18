@@ -69,6 +69,7 @@ module cv32e40p_core
     output logic [31:0] data_addr_o,
     output logic [31:0] data_wdata_o,
     input  logic [31:0] data_rdata_i,
+    output logic        smem_o,
 
     // CVFPU interface
     output logic                              apu_busy_o,
@@ -385,11 +386,10 @@ module cv32e40p_core
   logic [31:0] sync_reg;
   logic [4:0] sync_reserved_reg_idx;
   logic sync_reserved;
+  logic [31:0] cmd_sync_reg_set;
+  logic [31:0] smem_sync_reg_set;
   logic [31:0] sync_reg_set;
   logic sync_taken;
-
-  // assign sync_reg_set = '0;
-  // assign sync_taken = 1'b0;
 
   // vector mask
   logic [31:0] vector_mask;
@@ -408,6 +408,8 @@ module cv32e40p_core
   logic [2:0][2:0][15:0] cood_incr_ex;
   logic sync_reserved_ex;
   logic [4:0] sync_reserved_idx_ex;
+  logic sync_reserved_ex_q;
+  logic [4:0] sync_reserved_idx_ex_q;
   logic [31:0] vector_mask_reg_ex;
   cmd_opcode_e cmd_opcode_ex;
   logic cmd_queue_req;
@@ -428,6 +430,13 @@ module cv32e40p_core
   logic [15:0] mxu_wl_sram_addr_bnd_ex;
   logic mxu_widx_ex;
 
+  // SMEM
+  logic smem_ex;
+  logic smem_ex_q;
+
+  // LSU
+  logic smem_lsu_end;
+
   // Mux selector for vectored IRQ PC
   assign m_exc_vec_pc_mux_id = (mtvec_mode == 2'b0) ? 5'h0 : exc_cause;
   assign u_exc_vec_pc_mux_id = (utvec_mode == 2'b0) ? 5'h0 : exc_cause;
@@ -437,6 +446,25 @@ module cv32e40p_core
 
   // APU master signals
   assign apu_flags_o = apu_flags_ex;
+
+  // smem signal
+  always_ff @(posedge clk_i, negedge rst_ni) begin
+    if(~rst_ni) begin
+      smem_ex_q <= 1'b0;
+      sync_reserved_ex_q <= 1'b0;
+      sync_reserved_idx_ex_q <= 5'b0;
+    end else begin
+      smem_ex_q <= smem_ex;
+      sync_reserved_ex_q <= sync_reserved_ex;
+      sync_reserved_idx_ex_q <= sync_reserved_idx_ex;
+    end
+  end
+  assign smem_o = smem_ex;
+
+  // sync
+  assign smem_lsu_end = smem_ex_q & ~smem_ex;
+  assign smem_sync_reg_set = (smem_ex & sync_reserved_ex & id_valid & ex_ready) ? (32'b1 << sync_reserved_idx_ex) : '0;
+  assign sync_reg_set = cmd_sync_reg_set | smem_sync_reg_set;
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   //   ____ _            _      __  __                                                   _    //
@@ -862,7 +890,10 @@ module cv32e40p_core
       .mxu_wl_sram_base_addr_ex_o(mxu_wl_sram_base_addr_ex),
       .mxu_wl_sram_addr_strd_ex_o(mxu_wl_sram_addr_strd_ex),
       .mxu_wl_sram_addr_bnd_ex_o(mxu_wl_sram_addr_bnd_ex),
-      .mxu_widx_ex_o(mxu_widx_ex)
+      .mxu_widx_ex_o(mxu_widx_ex),
+
+      // SMEM
+      .smem_ex_o(smem_ex)
   );
 
   cv32e40p_config_register config_register_i(
@@ -1076,7 +1107,7 @@ module cv32e40p_core
     // sync
     .sync_reserved_ex_i(sync_reserved_ex),
     .sync_reserved_idx_ex_i(sync_reserved_idx_ex),
-    .sync_set_req_o(sync_reg_set),
+    .sync_set_req_o(cmd_sync_reg_set),
 
     // dma
     .segment_size_ex_i(segment_size_ex),

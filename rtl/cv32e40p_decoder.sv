@@ -185,7 +185,10 @@ module cv32e40p_decoder
   output cmd_opcode_e cmd_opcode_o,
   output node_type_e cmd_node_type_o,
   output logic [2:0] addr_update_en_o,
-  output logic mxu_widx_o
+  output logic mxu_widx_o,
+  
+  // shared mem
+  output logic smem_o
 );
 
   // write enable/request control
@@ -348,6 +351,7 @@ module cv32e40p_decoder
     cmd_node_type_o = NODE_INVALID;
     addr_update_en_o = 3'b0;
     mxu_widx_o = 1'b0;
+    smem_o = 1'b0;
 
     unique case (instr_rdata_i[6:0])
 
@@ -3241,9 +3245,38 @@ module cv32e40p_decoder
       end
 
       OPCODE_RESERVED_1: begin // shared LD
+        data_req           = 1'b1;
+        regfile_mem_we     = 1'b1;
+        rega_used_o        = 1'b1;
+        alu_operator_o     = ALU_ADD;
+        // offset from immediate
+        alu_op_b_mux_sel_o = OP_B_IMM;
+        imm_b_mux_sel_o    = IMMB_I;
+
+        // sign/zero extension
+        data_sign_extension_o = 2'b0;
+
+        // load size
+        data_type_o = 2'b00; // LW
+
+        smem_o = 1'b1;
       end
 
       OPCODE_RESERVED_2: begin // shared ST
+        data_req           = 1'b1;
+        data_we_o          = 1'b1;
+        rega_used_o        = 1'b1;
+        regb_used_o        = 1'b1;
+        alu_operator_o     = ALU_ADD;
+        // pass write data through ALU operand c
+        alu_op_c_mux_sel_o = OP_C_REGB_OR_FWD;
+        // offset from immediate
+        imm_b_mux_sel_o    = IMMB_S;
+        alu_op_b_mux_sel_o = OP_B_IMM;
+
+        // store size
+        data_type_o = 2'b00; // SW
+        smem_o = 1'b1;
       end
 
       OPCODE_RESERVED_3: begin // sync

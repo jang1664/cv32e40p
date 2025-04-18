@@ -47,7 +47,9 @@ module cv32e40p_id_stage
     parameter APU_WOP_CPU = 6,
     parameter APU_NDSFLAGS_CPU = 15,
     parameter APU_NUSFLAGS_CPU = 5,
-    parameter DEBUG_TRIGGER_EN = 1
+    parameter DEBUG_TRIGGER_EN = 1,
+    localparam DIM_NUM=3,
+    localparam OPND_NUM=3
 ) (
     input logic clk,  // Gated clock
     input logic clk_ungated_i,  // Ungated clock
@@ -258,7 +260,7 @@ module cv32e40p_id_stage
     output logic [2:0][15:0] addr_strd_o,
     output logic        addr_config_we_o,
     output logic [1:0]  addr_config_widx_o,
-    input  logic [2:0][2:0][15:0] addr_bnd_i,
+    input  logic [OPND_NUM-1:0][DIM_NUM-1:0][15:0] addr_bnd_i,
     input  logic [2:0][2:0][15:0] addr_strd_i, 
 
     // coord range
@@ -311,7 +313,10 @@ module cv32e40p_id_stage
     output logic [15:0] mxu_wl_sram_base_addr_ex_o,
     output logic [15:0] mxu_wl_sram_addr_strd_ex_o,
     output logic [15:0] mxu_wl_sram_addr_bnd_ex_o,
-    output logic mxu_widx_ex_o
+    output logic mxu_widx_ex_o,
+
+    // shared mem
+    output logic smem_ex_o
 );
 
   // Source/Destination register instruction index
@@ -561,11 +566,14 @@ module cv32e40p_id_stage
   // MM
   logic mxu_widx;
 
+  // SMEM
+  logic smem;
+
   // assign sync_reg_reserve_o = sync_reg_reserve & ~branch_taken_ex;
   // assign sync_reg_wait_o = sync_reg_wait & ~branch_taken_ex;
   assign sync_reg_reserve_o = sync_reg_reserve;
   assign sync_reg_wait_o = sync_reg_wait;
-  assign sync_taken_o = cmd_dec & ~data_misaligned_i & id_valid_o & ex_ready_i;
+  assign sync_taken_o = (cmd_dec | smem) & ~data_misaligned_i & id_valid_o & ex_ready_i;
 
   assign instr = instr_rdata_i;
 
@@ -1203,7 +1211,10 @@ module cv32e40p_id_stage
       .cmd_opcode_o(cmd_opcode),
       .cmd_node_type_o(cmd_node_type),
       .addr_update_en_o(addr_update_en),
-      .mxu_widx_o(mxu_widx)
+      .mxu_widx_o(mxu_widx),
+
+      // shared mem
+      .smem_o(smem)
   );
 
   ////////////////////////////////////////////////////////////////////
@@ -1624,6 +1635,7 @@ module cv32e40p_id_stage
       mxu_wl_sram_addr_strd_ex_o <= '0;
       mxu_wl_sram_base_addr_ex_o <= '0;
       mxu_widx_ex_o <= '0;
+      smem_ex_o <= '0;
 
     end else if (data_misaligned_i) begin
       // misaligned data access case
@@ -1746,10 +1758,16 @@ module cv32e40p_id_stage
             cmd_base_addr_a_ex_o <= operand_a_fw_id;
             cmd_base_addr_b_ex_o <= operand_b_fw_id;
             cmd_base_addr_c_ex_o <= operand_c_fw_id;
+            // for(int opnd_num=0; opnd_num<OPND_NUM; opnd_num++) begin
+            //   for(int dim_num=0; dim_num<DIM_NUM; dim_num++) begin
+            //     addr_bnd_ex_o[opnd_num][dim_num] <= addr_bnd_i[opnd_num][dim_num] + 1'b1;
+            //     cood_incr_ex_o[opnd_num][dim_num] <= cood_incr_i[opnd_num][dim_num] + 1'b1;
+            //   end
+            // end
             addr_bnd_ex_o <= addr_bnd_i;
+            cood_incr_ex_o <= cood_incr_i;
             addr_strd_ex_o <= addr_strd_i;
             cood_base_ex_o <= cood_base_i;
-            cood_incr_ex_o <= cood_incr_i;
           end else if(cmd_mur) begin
             cmd_addr_update_en_ex_o[0] <= addr_update_en[0];
             cmd_addr_update_en_ex_o[2] <= addr_update_en[2];
@@ -1777,6 +1795,13 @@ module cv32e40p_id_stage
             dma_sram_base_addr_ex_o <= operand_a_fw_id;
             dma_dram_base_addr_ex_o <= operand_b_fw_id;
           end
+        end
+
+        // shared mem pipe
+        smem_ex_o <= smem;
+        if(smem) begin
+          sync_reserved_ex_o <= sync_reserved_i;
+          sync_reserved_idx_ex_o <= sync_reserved_idx_i;
         end
       end else if (ex_ready_i) begin
         // EX stage is ready but we don't have a new instruction for it,
