@@ -70,13 +70,21 @@ package cf_math_pkg;
       bit [31:0] bits_fp32;
       bit sign;
       bit [4:0] exponent;
-      bit [10:0] mantissa;
+      bit [9:0] mantissa;
 
       bit [7:0] exp_fp32;
       bit [22:0] mant_fp32;
 
-      exp_fp32 = exponent - 31 + 127;
-      mant_fp32 = {mantissa, 11'b0};
+      sign = bits[15];
+      exponent = bits[14:10];
+      mantissa = bits[9:0];
+
+      if(exponent == 0) begin
+        exp_fp32 = 0;
+      end else begin
+        exp_fp32 = exponent - 15 + 127;
+      end
+      mant_fp32 = {mantissa, 13'b0};
       bits_fp32 = {sign, exp_fp32, mant_fp32};
       return $bitstoshortreal(bits_fp32);
     endfunction
@@ -88,12 +96,16 @@ package cf_math_pkg;
       bit [22:0] mantissa;
 
       bit [4:0] exp_fp16;
-      bit [10:0] mant_fp16;
+      bit [9:0] mant_fp16;
 
       bits_fp32 = $shortrealtobits(f);
       {sign, exponent, mantissa} = bits_fp32;
-      exp_fp16 = exponent - 127 + 31;
-      mant_fp16 = {mantissa[22:12]};
+      if(exponent == 0) begin
+        exp_fp16 = 0;
+      end else begin
+        exp_fp16 = exponent - 127 + 15;
+      end
+      mant_fp16 = {mantissa[22:13]};
       return {sign, exp_fp16, mant_fp16};
     endfunction
 
