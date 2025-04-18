@@ -73,10 +73,18 @@ module tb_top #(
   initial begin : load_prog
     automatic string firmware;
     automatic int prog_size = 6;
+    automatic int fd;
 
     if ($value$plusargs("firmware=%s", firmware)) begin
-      if ($test$plusargs("verbose"))
+      fd = $fopen(firmware, "r");
+      if (fd == 0) begin
+        $display("Error: could not open firmware %0s", firmware);
+        $finish;
+      end
+
+      if ($test$plusargs("verbose")) begin
         $display("[TESTBENCH] %t: loading firmware %0s ...", $time, firmware);
+      end
       $readmemh(firmware, wrapper_i.ram_i.dp_ram_i.mem);
 
     end else begin
