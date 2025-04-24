@@ -108,5 +108,4 @@ package cf_math_pkg;
       mant_fp16 = {mantissa[22:13]};
       return {sign, exp_fp16, mant_fp16};
     endfunction
-
 endpackage

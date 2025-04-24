@@ -3170,26 +3170,27 @@ module cv32e40p_decoder
         regb_used_o = 1'b1;
         alu_en = 1'b0;
         cmd_mur_o = 1'b1;
+        addr_update_en_o[1:0] = 2'b11;
         case({instr_rdata_i[31:25], instr_rdata_i[14:12]})
           {7'b0, 3'b000}: begin
             cmd_opcode_o = CMD_OPCODE_EXP_V_F32;
             cmd_node_type_o = NODE_EXP_F32;
           end
           {7'b0, 3'b001}: begin
-            cmd_opcode_o = CMD_OPCODE_RELU_V_F32;
-            cmd_node_type_o = NODE_RELU_F32;
-          end
-          {7'b0, 3'b010}: begin
             cmd_opcode_o = CMD_OPCODE_F16_TO_F32;
             cmd_node_type_o = NODE_FL_CONVERT;
           end
-          {7'b0, 3'b011}: begin
+          {7'b0, 3'b010}: begin
             cmd_opcode_o = CMD_OPCODE_F32_TO_F16;
             cmd_node_type_o = NODE_FL_CONVERT;
           end
-          {7'b0, 3'b100}: begin
+          {7'b0, 3'b011}: begin
             cmd_opcode_o = CMD_OPCODE_REDUCE_SUM_F32;
             cmd_node_type_o = NODE_REDUCE_SUM_F32;
+          end
+          {7'b0, 3'b100}: begin
+            cmd_opcode_o = CMD_OPCODE_RELU_V_F32;
+            cmd_node_type_o = NODE_RELU_F32;
           end
           {7'b0, 3'b101}: begin
             cmd_opcode_o = CMD_OPCODE_MV_F32;
