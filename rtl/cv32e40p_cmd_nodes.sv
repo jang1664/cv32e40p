@@ -72,6 +72,10 @@ module cv32e40p_cmd_nodes
     dram_dma_node.tcdm_sram_vif = dma_smem_master;
     mxu_dma_node.clk_vif = clkif_inst;
 
+    for(int i=0; i<GEM_NUM; i++) begin
+      mxu_dma_node.gemm_nodes.push_back(nodes.node[getStartIdx(NODE_GEMM)+i]);
+    end
+
     // start models
     fork
       nodes.run();
@@ -109,9 +113,9 @@ module cv32e40p_cmd_nodes
               .node_type(node_type_i),
               .base_addr_rs1(mxu_wl_sram_base_addr_ex_i),
               .strides_rs1('{mxu_wl_sram_addr_strd_ex_i, 0, 0}),
-              .bnds_rs1('{mxu_wl_sram_addr_strd_ex_i, 0, 0}),
+              .bnds_rs1('{mxu_wl_sram_addr_bnd_ex_i, 0, 0}),
               .reserve_sync(sync_reserved_ex_i), .sync_reg_idx(sync_reserved_idx_ex_i),
-              .segment_size(segment_size_ex_i)
+              .segment_size(segment_size_ex_i), .widx(mxu_widx_ex_i)
             );
             mxu_dma_node.push_back(cmd);
           end
@@ -143,7 +147,8 @@ module cv32e40p_cmd_nodes
               .base_coo_rd('{cood_base_ex_i[2][0], cood_base_ex_i[2][1], cood_base_ex_i[2][2]}),
               .coo_incr_rd('{cood_incr_ex_i[2][0], cood_incr_ex_i[2][1], cood_incr_ex_i[2][2]}),
               .reserve_sync(sync_reserved_ex_i), .sync_reg_idx(sync_reserved_idx_ex_i),
-              .vector_mask(vector_mask_reg_ex_i), .addr_update_en(cmd_addr_update_en_ex_i)
+              .vector_mask(vector_mask_reg_ex_i), .addr_update_en(cmd_addr_update_en_ex_i),
+              .widx(mxu_widx_ex_i)
             );
             nodes.push_back(cmd);
           end

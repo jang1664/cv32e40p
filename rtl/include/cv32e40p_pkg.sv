@@ -854,4 +854,6 @@ package cv32e40p_pkg;
     NODE_WEIGHT_LOADER
   } node_type_e;
 
+  parameter VEC_LEN=32;
+
 endpackage

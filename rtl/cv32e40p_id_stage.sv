@@ -552,6 +552,7 @@ module cv32e40p_id_stage
   logic sync_reg_reserve;
   logic sync_reg_wait;
   logic sync_stall;
+  logic sync_taken;
 
   // command ctrl
   logic cmd_dec; 
@@ -573,7 +574,8 @@ module cv32e40p_id_stage
   // assign sync_reg_wait_o = sync_reg_wait & ~branch_taken_ex;
   assign sync_reg_reserve_o = sync_reg_reserve;
   assign sync_reg_wait_o = sync_reg_wait;
-  assign sync_taken_o = (cmd_dec | smem) & ~data_misaligned_i & id_valid_o & ex_ready_i;
+  // assign sync_taken_o = (cmd_dec | smem) & ~data_misaligned_i & id_valid_o & ex_ready_i;
+  assign sync_taken_o = sync_taken & ~data_misaligned_i & id_valid_o & ex_ready_i;
 
   assign instr = instr_rdata_i;
 
@@ -1200,6 +1202,7 @@ module cv32e40p_id_stage
       .sync_reg_idx_o(sync_reg_idx_o),
       .sync_reg_reserve_o(sync_reg_reserve),
       .sync_reg_wait_o(sync_reg_wait),
+      .sync_taken_o(sync_taken),
       .vector_mask_we_o(vector_mask_we_o),
 
       // cmd
@@ -1782,6 +1785,14 @@ module cv32e40p_id_stage
             cood_incr_ex_o[0] <= cood_incr_i[0];
             cood_incr_ex_o[2] <= cood_incr_i[2];
           end else if(cmd_mat) begin
+            cmd_addr_update_en_ex_o <= addr_update_en;
+            cmd_base_addr_a_ex_o <= operand_a_fw_id;
+            cmd_base_addr_b_ex_o <= operand_b_fw_id;
+            cmd_base_addr_c_ex_o <= operand_c_fw_id;
+            addr_bnd_ex_o <= addr_bnd_i;
+            cood_incr_ex_o <= cood_incr_i;
+            addr_strd_ex_o <= addr_strd_i;
+            cood_base_ex_o <= cood_base_i;
             mxu_wl_sram_base_addr_ex_o <= operand_a_fw_id;
             mxu_wl_sram_addr_bnd_ex_o <= operand_a_fw_id;
             mxu_wl_sram_addr_strd_ex_o <= operand_b_fw_id;

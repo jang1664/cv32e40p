@@ -172,6 +172,7 @@ module cv32e40p_decoder
   output logic [4:0] sync_reg_idx_o,
   output logic sync_reg_reserve_o,
   output logic sync_reg_wait_o,
+  output logic sync_taken_o,
 
   // vector mask
   output logic vector_mask_we_o,
@@ -220,6 +221,7 @@ module cv32e40p_decoder
 
   logic sync_reg_reserve;
   logic sync_reg_wait;
+  logic sync_taken;
 
   logic vector_mask_we;
 
@@ -339,6 +341,7 @@ module cv32e40p_decoder
     sync_reg_idx_o = 5'b0;
     sync_reg_reserve = 1'b0;
     sync_reg_wait = 1'b0;
+    sync_taken = 1'b0;
 
     vector_mask_we = 1'b0;
 
@@ -2205,6 +2208,7 @@ module cv32e40p_decoder
           regb_used_o = 1'b1;
           regc_used_o = 1'b1;
           regc_mux_o = REGC_S4;
+          sync_taken = 1'b1;
           unique case(instr_rdata_i[14:12])
             3'b000: begin // MUL.M.VV.f32
               cmd_opcode_o = CMD_OPCODE_MUL_VV_F32;
@@ -2771,21 +2775,26 @@ module cv32e40p_decoder
 
             default: illegal_insn_o = 1'b1;
           endcase
-        end else begin : FPINT_CUSTOM_3
+        end else begin : FPINT_CUSTOM_3 // MAT
           alu_en = 1'b0;
           cmd_dec = 1'b1;
           cmd_node_type_o=NODE_GEMM;
+          cmd_mat_o = 1'b1;
+          sync_taken = 1'b1;
           case(instr_rdata_i[14:12])
             3'b000: begin
               rega_used_o = 1'b1;
               regb_used_o = 1'b1;
               cmd_opcode_o = CMD_OPCODE_SETUP_LOAD_W;
+              cmd_node_type_o=NODE_WEIGHT_LOADER;
+              sync_taken = 1'b0;
             end
             3'b001: begin
               rega_used_o = 1'b1;
               regb_used_o = 1'b1;
               mxu_widx_o = instr_rdata_i[25];
               cmd_opcode_o = CMD_OPCODE_LOAD_W_MM;
+              cmd_node_type_o=NODE_WEIGHT_LOADER;
             end
             3'b010: begin
               rega_used_o = 1'b1;
@@ -3155,6 +3164,7 @@ module cv32e40p_decoder
       end
 
       OPCODE_48: begin // MUR
+        sync_taken = 1'b1;
         case({instr_rdata_i[31:25], instr_rdata_i[14:12]})
           {7'b0, 3'b000}: begin
             cmd_opcode_o = CMD_OPCODE_EXP_V_F32;
@@ -3213,9 +3223,11 @@ module cv32e40p_decoder
           end
           3'b010: begin
             cmd_opcode_o = CMD_OPCODE_DMA_LOAD;
+            sync_taken = 1'b1;
           end
           3'b011: begin
             cmd_opcode_o = CMD_OPCODE_DMA_STORE;
+            sync_taken = 1'b1;
           end
           default: begin
             illegal_insn_o = 1'b1;
@@ -3260,6 +3272,7 @@ module cv32e40p_decoder
         data_type_o = 2'b00; // LW
 
         smem_o = 1'b1;
+        sync_taken = 1'b1;
       end
 
       OPCODE_RESERVED_2: begin // shared ST
@@ -3277,6 +3290,7 @@ module cv32e40p_decoder
         // store size
         data_type_o = 2'b00; // SW
         smem_o = 1'b1;
+        sync_taken = 1'b1;
       end
 
       OPCODE_RESERVED_3: begin // sync
@@ -3324,6 +3338,7 @@ module cv32e40p_decoder
   assign sync_reg_wait_o             = (deassert_we_i) ? 1'b0          : sync_reg_wait;
   assign vector_mask_we_o            = (deassert_we_i) ? 1'b0          : vector_mask_we;
   assign cmd_dec_o                   = (deassert_we_i) ? 1'b0          : cmd_dec;
+  assign sync_taken_o                = (deassert_we_i) ? 1'b0          : sync_taken;
 
   assign ctrl_transfer_insn_in_dec_o  = ctrl_transfer_insn;
   assign regfile_alu_we_dec_o         = regfile_alu_we;
