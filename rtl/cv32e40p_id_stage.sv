@@ -1775,7 +1775,7 @@ module cv32e40p_id_stage
             cmd_addr_update_en_ex_o[0] <= addr_update_en[0];
             cmd_addr_update_en_ex_o[1] <= addr_update_en[1];
             cmd_base_addr_a_ex_o <= operand_a_fw_id;
-            cmd_base_addr_c_ex_o <= operand_c_fw_id;
+            cmd_base_addr_b_ex_o <= operand_b_fw_id;
             addr_bnd_ex_o[0] <= addr_bnd_i[0];
             addr_bnd_ex_o[1] <= addr_bnd_i[1];
             addr_strd_ex_o[0] <= addr_strd_i[0];

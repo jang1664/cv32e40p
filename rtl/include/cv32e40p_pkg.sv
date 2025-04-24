@@ -856,4 +856,17 @@ package cv32e40p_pkg;
 
   parameter VEC_LEN=32;
 
+  parameter node_type_e NODE_TYPES[] = '{
+    NODE_MUL,
+    NODE_ADD,
+    NODE_GEMM,
+    NODE_EXP_F32,
+    NODE_FL_CONVERT,
+    NODE_REDUCE_SUM_F32,
+    NODE_RELU_F32,
+    NODE_BIN_F32,
+    NODE_DMA,
+    NODE_WEIGHT_LOADER
+  };
+
 endpackage
