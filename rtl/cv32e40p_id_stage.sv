@@ -1773,17 +1773,17 @@ module cv32e40p_id_stage
             cood_base_ex_o <= cood_base_i;
           end else if(cmd_mur) begin
             cmd_addr_update_en_ex_o[0] <= addr_update_en[0];
-            cmd_addr_update_en_ex_o[2] <= addr_update_en[2];
+            cmd_addr_update_en_ex_o[1] <= addr_update_en[1];
             cmd_base_addr_a_ex_o <= operand_a_fw_id;
             cmd_base_addr_c_ex_o <= operand_c_fw_id;
             addr_bnd_ex_o[0] <= addr_bnd_i[0];
-            addr_bnd_ex_o[2] <= addr_bnd_i[2];
+            addr_bnd_ex_o[1] <= addr_bnd_i[1];
             addr_strd_ex_o[0] <= addr_strd_i[0];
-            addr_strd_ex_o[2] <= addr_strd_i[2];
+            addr_strd_ex_o[1] <= addr_strd_i[1];
             cood_base_ex_o[0] <= cood_base_i[0];
-            cood_base_ex_o[2] <= cood_base_i[2];
+            cood_base_ex_o[1] <= cood_base_i[1];
             cood_incr_ex_o[0] <= cood_incr_i[0];
-            cood_incr_ex_o[2] <= cood_incr_i[2];
+            cood_incr_ex_o[1] <= cood_incr_i[1];
           end else if(cmd_mat) begin
             cmd_addr_update_en_ex_o <= addr_update_en;
             cmd_base_addr_a_ex_o <= operand_a_fw_id;
