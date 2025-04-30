@@ -318,11 +318,13 @@ module cv32e40p_if_stage #(
 
 `ifdef FSIM
   always_ff @(clk) begin
-    if(instr_req_o & instr_gnt_i) begin
-      $display("[%0t] INST FETCH | ADDR: 0x%h", $time, instr_addr_o);
-    end
-    if(instr_rvalid_i) begin
-      $display("[%0t] INST FETCH | DATA: 0x%h", $time, instr_rdata_i);
+    if ($test$plusargs("verbose")) begin
+      if(instr_req_o & instr_gnt_i) begin
+        $display("[%0t] INST FETCH | ADDR: 0x%h", $time, instr_addr_o);
+      end
+      if(instr_rvalid_i) begin
+        $display("[%0t] INST FETCH | DATA: 0x%h", $time, instr_rdata_i);
+      end
     end
   end
 `endif

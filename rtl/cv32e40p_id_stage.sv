@@ -553,6 +553,8 @@ module cv32e40p_id_stage
   logic sync_reg_wait;
   logic sync_stall;
   logic sync_taken;
+  logic sync_use_reg;
+  logic [4:0] sync_reg_idx;
 
   // command ctrl
   logic cmd_dec; 
@@ -576,6 +578,7 @@ module cv32e40p_id_stage
   assign sync_reg_wait_o = sync_reg_wait;
   // assign sync_taken_o = (cmd_dec | smem) & ~data_misaligned_i & id_valid_o & ex_ready_i;
   assign sync_taken_o = sync_taken & ~data_misaligned_i & id_valid_o & ex_ready_i;
+  assign sync_reg_idx_o = sync_use_reg ? alu_operand_a : sync_reg_idx;
 
   assign instr = instr_rdata_i;
 
@@ -1199,10 +1202,11 @@ module cv32e40p_id_stage
       .addr_config_reg_we_o(addr_config_we_o),
       .cood_reg_widx_o(cood_reg_widx_o),
       .cood_reg_we_o(cood_reg_we_o),
-      .sync_reg_idx_o(sync_reg_idx_o),
+      .sync_reg_idx_o(sync_reg_idx),
       .sync_reg_reserve_o(sync_reg_reserve),
       .sync_reg_wait_o(sync_reg_wait),
       .sync_taken_o(sync_taken),
+      .sync_use_reg_o(sync_use_reg),
       .vector_mask_we_o(vector_mask_we_o),
 
       // cmd

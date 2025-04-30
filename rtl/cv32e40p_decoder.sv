@@ -173,6 +173,7 @@ module cv32e40p_decoder
   output logic sync_reg_reserve_o,
   output logic sync_reg_wait_o,
   output logic sync_taken_o,
+  output logic sync_use_reg_o,
 
   // vector mask
   output logic vector_mask_we_o,
@@ -342,6 +343,7 @@ module cv32e40p_decoder
     sync_reg_reserve = 1'b0;
     sync_reg_wait = 1'b0;
     sync_taken = 1'b0;
+    sync_use_reg_o = 1'b0;
 
     vector_mask_we = 1'b0;
 
@@ -3310,6 +3312,20 @@ module cv32e40p_decoder
           3'b001: begin // wait
             alu_en = 1'b0;
             sync_reg_idx_o = instr_rdata_i[11:7];
+            sync_reg_wait = 1'b1;
+          end
+
+          3'b010: begin // reserve.reg
+            alu_en = 1'b0;
+            sync_use_reg_o = 1'b1;
+            rega_used_o = 1'b1;
+            sync_reg_reserve = 1'b1;
+          end
+
+          3'b011: begin // wait.reg
+            alu_en = 1'b0;
+            sync_use_reg_o = 1'b1;
+            rega_used_o = 1'b1;
             sync_reg_wait = 1'b1;
           end
 
