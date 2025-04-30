@@ -262,16 +262,17 @@ module cv32e40p_top #(
   // cache
 
   // shared mem
-  SharedMem smem = new();
-  clk_if clk_if();
-  assign clk_if.clk = clk_i;
+  shared_mem u_shared_mem (
+    .clk_i(clk_i),
+    .rst_ni(rst_ni),
+    .lsu_tcdm_slv(lsu_smem_tcdm_master),
+    .tcdm_slv(dma_smem_master)
+  );
+
   initial begin
-    core_i.cmd_nodes_i.nodes.smem = smem;
-    core_i.cmd_nodes_i.dram_dma_node.smem = smem;
-    core_i.cmd_nodes_i.mxu_dma_node.smem = smem;
-    smem.tcdm_slv_vif = lsu_smem_tcdm_master;
-    smem.clk_vif = clk_if;
-    smem.run();
+    core_i.cmd_nodes_i.nodes.smem = u_shared_mem.smem;
+    core_i.cmd_nodes_i.u_dram_dma_node.dram_dma_node.smem = u_shared_mem.smem;
+    core_i.cmd_nodes_i.mxu_dma_node.smem = u_shared_mem.smem;
   end
 
 endmodule

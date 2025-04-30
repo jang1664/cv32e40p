@@ -53,6 +53,9 @@ module cv32e40p_cmd_nodes
   clk_if clkif_inst();
   Cmd cmd;
 
+  logic dma_dram_req;
+  logic dma_dram_gnt_cmd_push;
+
   // ======================================================
   // SUBMODULES
   // ======================================================
@@ -84,27 +87,79 @@ module cv32e40p_cmd_nodes
     join_none
   end
 
+  dram_dma_node u_dram_dma_node (
+    .clk_i(clk_i),
+    .rst_ni(rst_ni),
+
+    .req_cmd_push_i(dma_dram_req),
+    .gnt_cmd_push_o(dma_dram_gnt_cmd_push),
+
+    // .ctrl_i(dram_dma_ctrl_t'{
+    //   .opcode(cmd_opcode_i),
+    //   .dram_base_addr(dma_dram_base_addr_ex_i),
+    //   .dram_addr_strd(dma_dram_addr_strd_ex_i),
+    //   .dram_addr_bnd(dma_dram_addr_bnd_ex_i),
+    //   .sram_base_addr(dma_sram_base_addr_ex_i),
+    //   .sram_addr_strd(dma_sram_addr_strd_ex_i),
+    //   .sram_addr_bnd(dma_sram_addr_bnd_ex_i),
+    //   .sync_reserved(sync_reserved_ex_i),
+    //   .sync_reserved_idx(sync_reserved_idx_ex_i),
+    //   .segment_size(segment_size_ex_i),
+    //   .pad_size(pad_size_ex_i)
+    // }),
+
+    .ctrl_i(dram_dma_ctrl_t'{
+      cmd_opcode_i,
+      dma_dram_base_addr_ex_i,
+      dma_dram_addr_strd_ex_i,
+      dma_dram_addr_bnd_ex_i,
+      dma_sram_base_addr_ex_i,
+      dma_sram_addr_strd_ex_i,
+      dma_sram_addr_bnd_ex_i,
+      sync_reserved_ex_i,
+      sync_reserved_idx_ex_i,
+      segment_size_ex_i,
+      pad_size_ex_i
+    }),
+
+    .smem_master(dma_smem_master),
+    .dram_master(dma_dram_master)
+  );
+
+  always_comb begin
+    dma_dram_req = 1'b0;
+    if(req_i) begin
+      case(node_type_i)
+        NODE_DMA: begin
+          dma_dram_req = 1'b1;
+        end
+
+        NODE_WEIGHT_LOADER:begin
+        end
+
+        NODE_MUL,
+        NODE_ADD,
+        NODE_GEMM,
+        NODE_EXP_F32,
+        NODE_FL_CONVERT,
+        NODE_REDUCE_SUM_F32,
+        NODE_RELU_F32,
+        NODE_BIN_F32: begin
+        end
+
+        default: begin
+          $error("cv32e40p_cmd_nodes: Unknown command type %0s", node_type_i.name());
+        end
+      endcase
+    end
+  end
+
   always_ff @(posedge clk_i, negedge rst_ni) begin
     if(~rst_ni) begin
-  
     end else begin
       if(req_i & gnt_o) begin
         case(node_type_i)
           NODE_DMA: begin
-            cmd = new (
-              .opcode(cmd_opcode_i),
-              .node_type(node_type_i),
-              .base_addr_rs1(dma_dram_base_addr_ex_i),
-              .strides_rs1('{dma_dram_addr_strd_ex_i[0], dma_dram_addr_strd_ex_i[1], dma_dram_addr_strd_ex_i[2]}),
-              .bnds_rs1('{dma_dram_addr_bnd_ex_i[0], dma_dram_addr_bnd_ex_i[1], dma_dram_addr_bnd_ex_i[2]}),
-              .base_addr_rs2(dma_sram_base_addr_ex_i),
-              .strides_rs2('{dma_sram_addr_strd_ex_i[0], dma_sram_addr_strd_ex_i[1], dma_sram_addr_strd_ex_i[2]}),
-              .bnds_rs2('{dma_sram_addr_bnd_ex_i[0], dma_sram_addr_bnd_ex_i[1], dma_sram_addr_bnd_ex_i[2]}),
-              .reserve_sync(sync_reserved_ex_i), .sync_reg_idx(sync_reserved_idx_ex_i),
-              .segment_size(segment_size_ex_i),
-              .pad_size(pad_size_ex_i)
-            );
-            dram_dma_node.push_back(cmd);
           end
 
           NODE_WEIGHT_LOADER:begin
@@ -161,46 +216,39 @@ module cv32e40p_cmd_nodes
     end
   end
 
-  always_ff @(posedge clk_i, negedge rst_ni) begin
-    if(~rst_ni) begin
-      gnt_o <= 1'b0;
-    end else if(req_i) begin
-      if($urandom_range(0, 10)==0) begin
-        case(node_type_i)
-          NODE_DMA:begin
-            gnt_o <= (dram_dma_node.getQueueSize() < 8);
-          end
-
-          NODE_WEIGHT_LOADER:begin
-            gnt_o <= (mxu_dma_node.getQueueSize() < 8);
-          end
-
-          NODE_MUL,
-          NODE_ADD,
-          NODE_GEMM,
-          NODE_EXP_F32,
-          NODE_FL_CONVERT,
-          NODE_REDUCE_SUM_F32,
-          NODE_RELU_F32,
-          NODE_BIN_F32: begin
-            gnt_o <= (nodes.getQueueSize() < 8);
-          end
-
-          default: begin
-            $error("cv32e40p_cmd_nodes: Unknown command type. %s", node_type_i.name());
-          end
-        endcase
-      end else begin
-        gnt_o <= 1'b0;
+  always_comb begin
+    gnt_o = 1'b0;
+    case(node_type_i)
+      NODE_DMA:begin
+        gnt_o = dma_dram_gnt_cmd_push;
       end
-    end
+
+      NODE_WEIGHT_LOADER:begin
+        gnt_o = (mxu_dma_node.getQueueSize() < 8);
+      end
+
+      NODE_MUL,
+      NODE_ADD,
+      NODE_GEMM,
+      NODE_EXP_F32,
+      NODE_FL_CONVERT,
+      NODE_REDUCE_SUM_F32,
+      NODE_RELU_F32,
+      NODE_BIN_F32: begin
+        gnt_o = (nodes.getQueueSize() < 8);
+      end
+
+      default: begin
+        $error("cv32e40p_cmd_nodes: Unknown command type. %s", node_type_i.name());
+      end
+    endcase
   end
 
   always_ff @(posedge clk_i, negedge rst_ni) begin
     if(~rst_ni) begin
       sync_set_req_o <= '0;
     end else begin
-      sync_set_req_o <= nodes.sync_set_req | dram_dma_node.sync_set_req | mxu_dma_node.sync_set_req;
+      sync_set_req_o <= nodes.sync_set_req | u_dram_dma_node.dram_dma_node.sync_set_req | mxu_dma_node.sync_set_req;
     end
   end
 

@@ -1845,6 +1845,8 @@ module cv32e40p_id_stage
         alu_en_ex_o          <= 1'b1;
 
         cmd_ex_o             <= 1'b0;
+        
+        smem_ex_o            <= 1'b0;
 
       end else if (csr_access_ex_o) begin
         //In the EX stage there was a CSR access, to avoid multiple

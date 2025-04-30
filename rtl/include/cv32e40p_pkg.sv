@@ -869,4 +869,18 @@ package cv32e40p_pkg;
     NODE_WEIGHT_LOADER
   };
 
+  typedef struct packed {
+    cmd_opcode_e cmd_opcode;
+    logic [31:0] dram_base_addr;
+    logic [2:0][15:0] dram_addr_strd;
+    logic [2:0][15:0] dram_addr_bnd;
+    logic [31:0] sram_base_addr;
+    logic [2:0][15:0] sram_addr_strd;
+    logic [2:0][15:0] sram_addr_bnd;
+    logic sync_reserved;
+    logic [4:0] sync_reserved_idx;
+    logic [15:0] segment_size;
+    logic [15:0] pad_size;
+  } dram_dma_ctrl_t;
+
 endpackage
