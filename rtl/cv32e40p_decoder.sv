@@ -352,8 +352,8 @@ module cv32e40p_decoder
     cmd_mur_o = 1'b0;
     cmd_mat_o = 1'b0;
     cmd_dma_o = 1'b0;
-    cmd_opcode_o = CMD_OPCODE_INVALID;
-    cmd_node_type_o = NODE_INVALID;
+    cmd_opcode_o = CMD_OPCODE_NOP;
+    cmd_node_type_o = NODE_NOP;
     addr_update_en_o = 3'b0;
     mxu_widx_o = 1'b0;
     smem_o = 1'b0;

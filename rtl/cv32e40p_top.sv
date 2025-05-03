@@ -110,6 +110,9 @@ module cv32e40p_top #(
   TCDM_BUS #(.ADDR_WIDTH(32), .DATA_WIDTH(32)) dma_dram_master (.clk(clk_i));
   TCDM_BUS #(.ADDR_WIDTH(32), .DATA_WIDTH(32)) dma_smem_master (.clk(clk_i));
 
+  // mxu
+  TCDM_BUS #(.ADDR_WIDTH(32), .DATA_WIDTH(32)) mxu_smem_master (.clk(clk_i));
+
   // bridge
   TCDM_BUS #(.ADDR_WIDTH(32), .DATA_WIDTH(32)) tcdm_mux_in [2](.clk(clk_i));
   TCDM_BUS #(.ADDR_WIDTH(32), .DATA_WIDTH(32)) tcdm_mux_out [1](.clk(clk_i));
@@ -175,7 +178,9 @@ module cv32e40p_top #(
       .core_sleep_o  (core_sleep_o),
 
       .dma_dram_master(dma_dram_master),
-      .dma_smem_master(dma_smem_master)
+      .dma_smem_master(dma_smem_master),
+
+      .mxu_smem_master(mxu_smem_master)
   );
 
   generate
@@ -266,13 +271,13 @@ module cv32e40p_top #(
     .clk_i(clk_i),
     .rst_ni(rst_ni),
     .lsu_tcdm_slv(lsu_smem_tcdm_master),
-    .tcdm_slv(dma_smem_master)
+    .tcdm_slv(dma_smem_master),
+    .mxu_tcdm_slv(mxu_smem_master)
   );
 
   initial begin
-    core_i.cmd_nodes_i.nodes.smem = u_shared_mem.smem;
+    core_i.cmd_nodes_i.u_nodes.nodes.smem = u_shared_mem.smem;
     core_i.cmd_nodes_i.u_dram_dma_node.dram_dma_node.smem = u_shared_mem.smem;
-    core_i.cmd_nodes_i.mxu_dma_node.smem = u_shared_mem.smem;
   end
 
 endmodule

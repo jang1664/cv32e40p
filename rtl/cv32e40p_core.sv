@@ -102,7 +102,9 @@ module cv32e40p_core
 
     // dma
     TCDM_BUS.master dma_dram_master,
-    TCDM_BUS.master dma_smem_master
+    TCDM_BUS.master dma_smem_master,
+
+    TCDM_BUS.master mxu_smem_master
 );
 
   import cv32e40p_pkg::*;
@@ -1127,7 +1129,10 @@ module cv32e40p_core
 
     // dram interface
     .dma_dram_master(dma_dram_master),
-    .dma_smem_master(dma_smem_master)
+    .dma_smem_master(dma_smem_master),
+
+    // mxu dma interface
+    .mxu_smem_master(mxu_smem_master)
   );
 
   ////////////////////////////////////////////////////////////////////////////////////////

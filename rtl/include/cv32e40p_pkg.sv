@@ -841,7 +841,7 @@ package cv32e40p_pkg;
   } cmd_opcode_e;
 
   typedef enum bit [7:0] {
-    NODE_INVALID='0,
+    NODE_NOP=0,
     NODE_MUL,
     NODE_ADD,
     NODE_GEMM,
@@ -851,7 +851,8 @@ package cv32e40p_pkg;
     NODE_RELU_F32,
     NODE_BIN_F32,
     NODE_DMA,
-    NODE_WEIGHT_LOADER
+    NODE_WEIGHT_LOADER,
+    NODE_INVALID
   } node_type_e;
 
   parameter VEC_LEN=32;
@@ -882,5 +883,41 @@ package cv32e40p_pkg;
     logic [15:0] segment_size;
     logic [15:0] pad_size;
   } dram_dma_ctrl_t;
+
+  typedef struct packed {
+    cmd_opcode_e cmd_opcode;
+    logic [15:0] sram_base_addr;
+    logic [15:0] sram_addr_strd;
+    logic [15:0] sram_addr_bnd;
+    logic sync_reserved;
+    logic [4:0] sync_reserved_idx;
+    logic [15:0] segment_size;
+    logic mxu_widx;
+  } mxu_dma_ctrl_t;
+
+  typedef struct packed {
+    cmd_opcode_e opcode;
+    node_type_e  node_type;
+    logic [31:0] base_addr_rs1;
+    logic [2:0][2:0][15:0] strides_rs1;
+    logic [2:0][2:0][15:0] bnds_rs1;
+    logic [31:0] base_addr_rs2;
+    logic [2:0][2:0][15:0] strides_rs2;
+    logic [2:0][2:0][15:0] bnds_rs2;
+    logic [31:0] base_addr_rd;
+    logic [2:0][2:0][15:0] strides_rd;
+    logic [2:0][2:0][15:0] bnds_rd;
+    logic [2:0][2:0][15:0] base_coo_rs1;
+    logic [2:0][2:0][15:0] coo_incr_rs1;
+    logic [2:0][2:0][15:0] base_coo_rs2;
+    logic [2:0][2:0][15:0] coo_incr_rs2;
+    logic [2:0][2:0][15:0] base_coo_rd;
+    logic [2:0][2:0][15:0] coo_incr_rd;
+    logic reserve_sync;
+    logic [4:0] sync_reg_idx;
+    logic [31:0] vector_mask;
+    logic [2:0] addr_update_en;
+    logic widx;
+  } compute_cmd_ctrl_t;
 
 endpackage
