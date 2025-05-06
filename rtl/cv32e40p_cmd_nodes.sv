@@ -55,12 +55,15 @@ module cv32e40p_cmd_nodes
 
   logic dma_dram_req;
   logic dma_dram_gnt_cmd_push;
+  logic [31:0] dma_dram_sync_set_req;
 
   logic mxu_dma_req;
   logic mxu_dma_gnt_cmd_push;
+  logic [31:0] mxu_dma_sync_set_req;
 
   logic cmd_req;
   logic cmd_gnt;
+  logic [31:0] cmd_sync_set_req;
 
   TCDM_BUS #(.ADDR_WIDTH(32), .DATA_WIDTH(32)) mxu_weight_master (.clk(clk_i));
 
@@ -87,6 +90,7 @@ module cv32e40p_cmd_nodes
       segment_size_ex_i,
       pad_size_ex_i
     }),
+    .sync_set_req_o(dma_dram_sync_set_req),
 
     .smem_master(dma_smem_master),
     .dram_master(dma_dram_master)
@@ -111,7 +115,8 @@ module cv32e40p_cmd_nodes
         segment_size_ex_i,
         mxu_widx_ex_i
       }
-    )
+    ),
+    .sync_set_req_o(mxu_dma_sync_set_req)
   );
 
   nodes u_nodes (
@@ -143,6 +148,7 @@ module cv32e40p_cmd_nodes
         vector_mask_reg_ex_i, cmd_addr_update_en_ex_i, mxu_widx_ex_i
       }
     ),
+    .sync_set_req_o(cmd_sync_set_req),
     .mxu_tcdm_slave(mxu_weight_master)
   );
 
@@ -169,6 +175,10 @@ module cv32e40p_cmd_nodes
         NODE_RELU_F32,
         NODE_BIN_F32: begin
           cmd_req = 1'b1;
+        end
+
+        NODE_NOP: begin
+          
         end
 
         default: begin
@@ -200,6 +210,10 @@ module cv32e40p_cmd_nodes
         gnt_o = cmd_gnt;
       end
 
+      NODE_NOP: begin
+        gnt_o = 1'b0;
+      end
+
       default: begin
         $error("cv32e40p_cmd_nodes: Unknown command type. %s", node_type_i.name());
       end
@@ -210,7 +224,7 @@ module cv32e40p_cmd_nodes
     if(~rst_ni) begin
       sync_set_req_o <= '0;
     end else begin
-      sync_set_req_o <= u_nodes.nodes.sync_set_req | u_dram_dma_node.dram_dma_node.sync_set_req | u_mxu_dma_node.mxu_dma_node.sync_set_req;
+      sync_set_req_o <= dma_dram_sync_set_req | mxu_dma_sync_set_req | cmd_sync_set_req;
     end
   end
 
